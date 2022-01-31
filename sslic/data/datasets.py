@@ -22,10 +22,6 @@ class MocoDataset:
             raise NameError(f"Unknown dataset_name: {self.dataset_name}")
         self.dataset_fn = getattr(self, self.dataset_name)
 
-    @property
-    def n_classes(self):
-        return {"imagenet": 1000, "cifar10": 10, "cifar100": 100}[self.dataset_name]
-
     def __call__(self, split='ssl') -> torch.utils.data.Dataset:
         is_train = split in ['ssl', 'train']
         return self.dataset_fn(split, is_train)

@@ -43,18 +43,23 @@ class SimSiam(BaseModel):
         p1 = self.predictor(z1)
         p2 = self.predictor(z2)
 
-        y_hat = self.classifier(h1.detach())
+        #y_hat = self.classifier(h1.detach())
 
-        return y_hat, (p1, p2, z1.detach(), z2.detach())
+        return h1.detach(), (p1, p2, z1.detach(), z2.detach())
 
 
 def simsiam_imagenet(pred_dim=512, dim=2048, **kwargs):
-    return SimSiam(models.resnet50, pred_dim=pred_dim, dim=dim, n_classes=1000)
-
-def simsiam_cifar10(pred_dim=32, dim=128, **kwargs):
-    return SimSiam(models.resnet18, pred_dim=pred_dim, dim=dim, n_classes=10)
-
-def simsiam_cifar100(pred_dim=32, dim=128, **kwargs):
-    return SimSiam(models.resnet18, pred_dim=pred_dim, dim=dim, n_classes=100)
+    return SimSiam(models.resnet50,
+                   pred_dim=pred_dim,
+                   dim=dim,
+                   n_classes=1000,
+                   zero_init_residual=True)
 
 
+def simsiam_cifar10(pred_dim=64, dim=128, **kwargs):
+    from .cifar_resnet import resnet18
+    return SimSiam(resnet18, pred_dim=pred_dim, dim=dim, n_classes=10)
+
+def simsiam_cifar100(pred_dim=64, dim=128, **kwargs):
+    from .cifar_resnet import resnet18
+    return SimSiam(resnet18, pred_dim=pred_dim, dim=dim, n_classes=100)

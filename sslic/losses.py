@@ -1,36 +1,37 @@
 import torch
+from .utils import AllGather
 
-def info_nce_loss(z1, z2, tau=0.1):
+def info_nce_loss(z1, z2, tau=0.5):
 
-    # Batch size
-    n = len(z1)
+    # Normalzie
+    z1 = torch.nn.functional.normalize(z1, dim=1)
+    z2 = torch.nn.functional.normalize(z1, dim=1)
 
-    # Labels telling which images make pairs
-    e = torch.eye(n).to(z1.device)
-    labels = torch.cat((
-        torch.cat((e, e)).T,
-        torch.cat((e, e), dim=1)
-    ))
+    # Collect from all gpu
+    z1 = AllGather.apply(z1)
+    z2 = AllGather.apply(z2)
 
     # Combine views and normalize
     z = torch.cat((z1, z2), dim=0)
-    z = torch.nn.functional.normalize(z, dim=1)
+    n = len(z)
+
+    # Labels telling which images make pairs
+    ones = torch.ones(n//2).to(z.device)
+    labels = ones.diagflat(n//2) + ones.diagflat(-n//2)
 
     # Note: The following code might require a large amount of memory
     # in case of large batch size
-    sim_m = z @ z.T / tau
+    sim_m = z @ z.T
 
-    # Removing diagonal
-    mask = torch.eye(2 * n, dtype=torch.bool).to(z.device)
-    labels = labels[~mask].view(2 * n, 2 * n-1)
-    sim_m = sim_m[~mask].view(2 * n, 2 * n-1)
+    # This is a bit of cheat. Instead of removing cells from
+    # the matrix where i==j, instead we set it to a very small value
+    sim_m = sim_m.fill_diagonal_(-1) / tau
 
     # Get probability distribution
-    sim_m = torch.nn.functional.softmax(sim_m, dim=1)
+    sim_m = torch.nn.functional.log_softmax(sim_m, dim=1)
 
     # Choose values on which we calculate the loss
-    positive_p = torch.masked_select(sim_m, labels.bool())
-    loss = -torch.sum(torch.log(positive_p)) / n
+    loss = -torch.sum(sim_m * labels) / n
 
     return loss
 
@@ -45,7 +46,7 @@ def barlow_twins_loss(z1, z2, lambd=5e-3):
 
     # Note: Since the loss grows with the number of dimensions we choose,
     # I've decided to scale it down a bit. This is different from facebookresearch's code.
-    loss /= z1.shape[1] / 10
+    #loss /= z1.shape[1] / 10
     return loss
 
 def simsiam_loss(p1, p2, z1, z2):

@@ -34,15 +34,15 @@ class BarlowTwins(BaseModel):
         z1 = self.projector(h1)
         z2 = self.projector(h2)
 
-        y_hat = self.classifier(h1.detach())
-
-        return y_hat, (z1, z2)
+        return h1.detach(), (z1, z2)
 
 def barlow_twins_imagenet(dim=8096, **kwargs):
-    return BarlowTwins(models.resnet50, dim=dim, n_classes=1000)
+    return BarlowTwins(models.resnet50, dim=dim, n_classes=1000, zero_init_residual=True)
 
 def barlow_twins_cifar10(dim=512, **kwargs):
-    return BarlowTwins(models.resnet18, dim=dim, n_classes=10)
+    from .cifar_resnet import resnet18
+    return BarlowTwins(resnet18, dim=dim, n_classes=10)
 
 def barlow_twins_cifar100(dim=512, **kwargs):
-    return BarlowTwins(models.resnet18, dim=dim, n_classes=100)
+    from .cifar_resnet import resnet18
+    return BarlowTwins(resnet18, dim=dim, n_classes=100)

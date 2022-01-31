@@ -32,13 +32,15 @@ class SimCLR(BaseModel):
 
         y_hat = self.classifier(h1.detach())
 
-        return y_hat, (z1, z2)
+        return h1.detach(), (z1, z2)
 
-def simclr_imagenet(dim=2048, **kwargs):
-    return SimCLR(models.resnet50, dim=dim, n_classes=1000)
+def simclr_imagenet(dim=2048):
+    return SimCLR(models.resnet50, dim=dim, n_classes=1000, zero_init_residual=True)
 
 def simclr_cifar10(dim=128, **kwargs):
-    return SimCLR(models.resnet18, dim=dim, n_classes=10)
+    from .cifar_resnet import resnet18
+    return SimCLR(resnet18, dim=dim, n_classes=10)
 
 def simclr_cifar100(dim=128, **kwargs):
-    return SimCLR(models.resnet18, dim=dim, n_classes=100)
+    from .cifar_resnet import resnet18
+    return SimCLR(resnet18, dim=dim, n_classes=100)
