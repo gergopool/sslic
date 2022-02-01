@@ -34,7 +34,7 @@ class SimCLR(BaseModel):
 
         return h1.detach(), (z1, z2)
 
-def simclr_imagenet(dim=2048):
+def simclr_imagenet(dim=2048, **kwargs):
     return SimCLR(models.resnet50, dim=dim, n_classes=1000, zero_init_residual=True)
 
 def simclr_cifar10(dim=128, **kwargs):
