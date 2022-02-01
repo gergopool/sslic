@@ -1,11 +1,11 @@
 import torch
 from .utils import AllGather
 
-def info_nce_loss(z1, z2, tau=0.5):
+def info_nce_loss(z1, z2, tau=0.07):
 
     # Normalzie
     z1 = torch.nn.functional.normalize(z1, dim=1)
-    z2 = torch.nn.functional.normalize(z1, dim=1)
+    z2 = torch.nn.functional.normalize(z2, dim=1)
 
     # Collect from all gpu
     z1 = AllGather.apply(z1)

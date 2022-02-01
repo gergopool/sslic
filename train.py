@@ -16,7 +16,7 @@ parser.add_argument('data_root', type=str)
 parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--batch-size', type=int, default=256)
 parser.add_argument('--epochs', type=int, default=100)
-parser.add_argument('--lr', type=float, default=0.1)
+parser.add_argument('--lr', type=float, default=0.3)
 parser.add_argument('--devices', type=str, nargs='+', default=['0'])
 
 

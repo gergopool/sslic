@@ -82,13 +82,11 @@ class WarmupCosineSchedule(torch.optim.lr_scheduler.LambdaLR):
                  optimizer,
                  warmup_steps,
                  T_max,
-                 ref_lr,
-                 start_lr=1e-3,
-                 final_lr=1e-4):
+                 ref_lr):
         self.warmup_steps = max(1, warmup_steps)
         self.T_max = max(1, T_max - warmup_steps)
-        self.start_lr = start_lr
-        self.final_lr = final_lr
+        self.start_lr = ref_lr / 10
+        self.final_lr = ref_lr / 10
         self.ref_lr = ref_lr
         super(WarmupCosineSchedule, self).__init__(optimizer, self.lr_lambda, last_epoch=-1)
 
