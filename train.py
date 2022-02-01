@@ -8,6 +8,7 @@ from sslic.trainer import SSLTrainer
 from sslic.models import get_ssl_method
 from sslic.data import get_dataset_provider
 import sslic.utils as utils
+from sslic.lars import LARS
 
 parser = argparse.ArgumentParser(description='Simple settings.')
 parser.add_argument('method', type=str, choices=['simsiam', 'simclr', 'barlow_twins'])
@@ -74,7 +75,7 @@ def main(rank, world_size, port, args):
     model = get_model(rank, world_size, device, args)
 
     # Optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-6)
+    optimizer = LARS(model.parameters(), lr=args.lr, weight_decay=1e-4)
 
     trainer = SSLTrainer(model, optimizer, (train_loader, val_loader), device=device, rank=rank)
     trainer.train(args.epochs, args.lr)

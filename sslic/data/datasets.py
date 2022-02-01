@@ -38,7 +38,7 @@ class MocoDataset:
 
     def cifar100(self, split, is_train):
         trans = transforms.small_moco_like("cifar100", split=split)
-        return datasets.CIFAR10(self.root, is_train, trans)
+        return datasets.CIFAR100(self.root, is_train, trans)
 
 
 class BarlowTwinsDataset(MocoDataset):
