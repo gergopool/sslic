@@ -85,4 +85,8 @@ if __name__ == '__main__':
     torch.multiprocessing.set_start_method("spawn")
     num_gpus = len(args.devices)
     port = randint(0, 9999) + 40000
-    mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+
+    if len(args.devices) > 1:
+        mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+    else:
+        main(0, 1, port, args)

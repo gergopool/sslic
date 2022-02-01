@@ -75,7 +75,6 @@ class SSLTrainer(GeneralTrainer):
 
         self.optimizer.zero_grad()
         with torch.cuda.amp.autocast(enabled=True):
-
             y = y.cuda(non_blocking=True)
             x = [t.cuda(non_blocking=True) for t in x]
             cnn_out, representations = self.model(x)
@@ -88,6 +87,9 @@ class SSLTrainer(GeneralTrainer):
             # Linear layer loss
             # Note: this is safe to do because the representations do not
             # recieive gradients from the labels, the linear layer is detached
+        with torch.cuda.amp.autocast(enabled=False):
+            y_hat = y_hat.float()
+            representations = [x.float() for x in representations]
             cls_loss = self.model.classifier_loss(y_hat, y)
             ssl_loss = self.model.ssl_loss(*representations)
             loss = ssl_loss + cls_loss

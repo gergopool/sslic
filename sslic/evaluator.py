@@ -26,9 +26,10 @@ class SnnEvaluator(nn.Module):
     def forward(self, x, y):
 
         # Similarity matrix
-        train_x = F.normalize(self.memory_bank, dim=1).view(-1, self.dim)
+        train_x = F.normalize(self.memory_bank.view(-1, self.dim), dim=1)
         val_x = F.normalize(x, dim=1)
         sim_m = F.softmax(val_x @ train_x.T, dim=1) @ self.onehot_labels
+        
 
         # Accuracy
         top5_preds = sim_m.topk(5, dim=1)[1]

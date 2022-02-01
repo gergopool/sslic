@@ -50,13 +50,11 @@ def barlow_twins_loss(z1, z2, lambd=5e-3):
     return loss
 
 def simsiam_loss(p1, p2, z1, z2):
-    loss = (cos_sim(p1, z2) + cos_sim(p2, z1)) / 2.
+    loss = (neg_cos_sim(p1, z2) + neg_cos_sim(p2, z1)) / 2.
     return loss
 
-def cos_sim(x1, x2):
-    x1 = torch.nn.functional.normalize(x1, dim=1)
-    x2 = torch.nn.functional.normalize(x2, dim=1)
-    return torch.sum(x1 * x2) / len(x1)
+def neg_cos_sim(x1, x2):
+    return -torch.nn.functional.cosine_similarity(x1, x2, dim=1).mean()
 
 def off_diagonal(x):
     n = len(x)
