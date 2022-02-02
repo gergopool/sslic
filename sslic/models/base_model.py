@@ -1,8 +1,31 @@
+import torch
 import torch.nn as nn
 
-class BaseModel(nn.Module):
 
-    def __init__(self,  base_encoder, dim=128, ssl_loss=None, n_classes=1000, **kwargs):
+class BaseModel(nn.Module):
+    """General SSL base model, and abstract class which
+       is useless in itself but all other SSL model inherits
+       from this class.
+
+        Parameters
+        ----------
+        base_encoder : nn.Module
+            The backend encoder. E.g. torchvision.models.resnet50
+        dim : int, optional
+            The dimension of output representation, by default 128
+        ssl_loss : nn.Module, optional
+            The loss defined on the output representations, by default None
+        n_classes : int, optional
+            Number of output classes. Note that this is always needed
+            because of online accuracy approximation. By default 1000
+        """
+
+    def __init__(self,
+                 base_encoder: nn.Module,
+                 dim: int = 128,
+                 ssl_loss: nn.Module = None,
+                 n_classes: int = 1000,
+                 **kwargs):
         super(BaseModel, self).__init__()
         self.dim = dim
         self.ssl_loss = ssl_loss
@@ -16,5 +39,5 @@ class BaseModel(nn.Module):
         self.classifier = nn.Linear(self.prev_dim, n_classes)
         self.lin_eval_loss = nn.CrossEntropyLoss()
 
-    def classifier_loss(self, y_hat, y):
+    def classifier_loss(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return self.lin_eval_loss(y_hat, y)

@@ -4,14 +4,17 @@ import os
 from . import transforms
 
 
-def get_dataset_provider(root, method_name, dataset_name):
+def get_dataset_provider(root, dataset_name, method_name=None):
+    if method_name is None:
+        return MocoDataset(root, dataset_name)
     method_name = method_name.lower()
+
     if method_name in ['simclr', 'simsiam']:
         return MocoDataset(root, dataset_name)
     elif method_name == 'barlow_twins':
         return BarlowTwinsDataset(root, dataset_name)
     else:
-        raise NameError(f"Method unknown: {method_name.lower()}")
+        raise NameError(f"Method unknown: {method_name}")
 
 
 class MocoDataset:

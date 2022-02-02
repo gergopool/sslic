@@ -1,6 +1,7 @@
+import torch
 import torch.nn as nn
 
-from ..losses import simsiam_loss
+from ..losses.simsiam import simsiam_loss
 from .base_model import BaseModel
 from torchvision import models
 
@@ -10,9 +11,16 @@ __all__ = ['simsiam_imagenet', 'simsiam_cifar10', 'simsiam_cifar100']
 class SimSiam(BaseModel):
     """
     Build a SimSiam model.
+    Credits: https://github.com/facebookresearch/simsiam/
+
+    Parameters
+        ----------
+        pred_dim : int, optional
+            Dimension of bottleneck layer at predict layer, by default 512
     """
-    def __init__(self, base_encoder, pred_dim=512, **kwargs):
-        super(SimSiam, self).__init__(base_encoder, ssl_loss=simsiam_loss, **kwargs)
+
+    def __init__(self, base_encoder: nn.Module, pred_dim: int = 512, **kwargs):
+        super(SimSiam, self).__init__(base_encoder, ssl_loss=simsiam_loss(), **kwargs)
         self.pred_dim = pred_dim
 
         # Projector
@@ -31,7 +39,7 @@ class SimSiam(BaseModel):
                                        nn.ReLU(inplace=True),
                                        nn.Linear(self.pred_dim, self.dim))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x1, x2 = x
 
         h1 = self.encoder(x1)
@@ -43,23 +51,18 @@ class SimSiam(BaseModel):
         p1 = self.predictor(z1)
         p2 = self.predictor(z2)
 
-        #y_hat = self.classifier(h1.detach())
-
-        return h1.detach(), (p1, p2, z1.detach(), z2.detach())
+        return h1, (p1, p2, z1, z2)
 
 
-def simsiam_imagenet(pred_dim=512, dim=2048, **kwargs):
-    return SimSiam(models.resnet50,
-                   pred_dim=pred_dim,
-                   dim=dim,
-                   n_classes=1000,
-                   zero_init_residual=True)
+def simsiam_imagenet() -> nn.Module:
+    return SimSiam(models.resnet50, pred_dim=512, dim=2048, n_classes=1000, zero_init_residual=True)
 
 
-def simsiam_cifar10(pred_dim=64, dim=128, **kwargs):
+def simsiam_cifar10() -> nn.Module:
     from .cifar_resnet import resnet18
-    return SimSiam(resnet18, pred_dim=pred_dim, dim=dim, n_classes=10)
+    return SimSiam(resnet18, pred_dim=64, dim=256, n_classes=10)
 
-def simsiam_cifar100(pred_dim=64, dim=128, **kwargs):
+
+def simsiam_cifar100() -> nn.Module:
     from .cifar_resnet import resnet18
-    return SimSiam(resnet18, pred_dim=pred_dim, dim=dim, n_classes=100)
+    return SimSiam(resnet18, pred_dim=64, dim=256, n_classes=100)
