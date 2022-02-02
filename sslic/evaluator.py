@@ -38,4 +38,4 @@ class SnnEvaluator(nn.Module):
         top5_acc = (top5_preds == top5_labels).any(dim=1).sum() / len(y)
         top1_acc = (top1_preds == y).sum() / len(y)
         
-        return top1_acc, top5_acc
+        return top1_acc

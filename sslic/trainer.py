@@ -1,5 +1,6 @@
 import torch
 import pkbar
+import os
 from abc import ABC
 
 from .utils import WarmupCosineSchedule, AllReduce
@@ -7,7 +8,7 @@ from .evaluator import SnnEvaluator
 
 
 class GeneralTrainer(ABC):
-    def __init__(self, model, optimizer, data_loaders, device, rank=None):
+    def __init__(self, model, optimizer, data_loaders, device, rank=None, save_params={"save_dir":None}):
         self.model = model
         self.optimizer = optimizer
         self.train_loader, self.val_loader = data_loaders
@@ -15,9 +16,34 @@ class GeneralTrainer(ABC):
         self.model = model
         self.scaler = torch.cuda.amp.GradScaler()
         self.rank = rank
+        self.save_dir = save_params.pop('save_dir')
+        self.save_dict = save_params
         self.pbar = ProgressBar(data_loaders, rank)
         self.evaluator = SnnEvaluator(self.model.prev_dim, self.model.n_classes,
                                       5000 // self.model.n_classes).cuda()
+        self.save_checkpoints = []
+        
+    def _need_save(self, epoch):
+        save_dir_given = self.save_dir is not None
+        in_saving_epoch = (epoch+1) in self.save_checkpoints
+        is_saving_core =  self.rank is None or self.rank==0
+        return save_dir_given and in_saving_epoch and is_saving_core
+
+    def _save(self, epoch):
+        save_dict = {
+            'epoch': epoch+1,
+            'state_dict' : self.mdoel.state_dict(),
+            'optimizer' : self.optimzer.state_dict(),
+            'amp' : self.scaler.state_dict(),
+        }
+        save_dict.update(self.save_dict)
+        filename = f'checkpoint_{epoch:04d}.pt.tar'
+        os.makedirs(self.save_dict, exist_ok=True)
+        filepath = os.path.join(self.save_dir, filename)
+        torch.save(save_dict, filepath)
+
+
+
 
     def train(self, n_epochs, ref_lr=0.1):
 
@@ -29,11 +55,14 @@ class GeneralTrainer(ABC):
         for epoch in range(n_epochs):
             self.pbar.reset(epoch, n_epochs)
             for data_batch in self.train_loader:
-                loss, lin_acc, snn_acc = self.train_step(data_batch)
-                self.pbar.update([("loss", loss), ('lin_acc', lin_acc), ('snn_acc', snn_acc)])
+                metrics = self.train_step(data_batch)
+                self.pbar.update(metrics)
             for data_batch in self.val_loader:
-                lin_acc, snn_acc = self.val_step(data_batch)
-                self.pbar.update([("val_lin_acc", lin_acc), ("val_snn_acc", snn_acc)])
+                metrics = self.val_step(data_batch)
+                self.pbar.update(metrics)
+
+            if self._need_save(epoch):
+                self._save(epoch)
 
     def train_step(self, batch):
         raise NotImplementedError
@@ -42,6 +71,8 @@ class GeneralTrainer(ABC):
         (x, y) = batch
         self.model.eval()
 
+        metrics = {}
+
         y = y.cuda()
         x = x.cuda()
 
@@ -49,10 +80,10 @@ class GeneralTrainer(ABC):
             z = self.model.encoder(x)
             y_hat = self.model.classifier(z)
 
-            snn_top1 = AllReduce.apply(self.evaluator(z, y))[0]
-            lin_top1 = AllReduce.apply(self._accuracy(y_hat, y))
+            metrics['snn_top1'] = AllReduce.apply(self.evaluator(z, y))
+            metrics['lin_top1'] = AllReduce.apply(self._accuracy(y_hat, y))
             
-        return lin_top1, snn_top1
+        return metrics
 
     def _accuracy(self, y_hat, y):
         pred = torch.max(y_hat.data, 1)[1]
@@ -69,6 +100,11 @@ class GeneralTrainer(ABC):
 
 
 class SSLTrainer(GeneralTrainer):
+
+    def __init__(self, *args, **kwargs):
+        super(SSLTrainer, self).__init__(*args, **kwargs)
+        self.save_checkpoints = [1, 10, 20, 50, 100, 200, 400, 600, 800, 1000]
+
     def train_step(self, batch):
         (x, y) = batch
         self.model.train()
@@ -80,7 +116,7 @@ class SSLTrainer(GeneralTrainer):
             cnn_out, representations = self.model(x)
             y_hat = self.model.classifier(cnn_out)
 
-            snn1_acc = AllReduce.apply(self.evaluator(cnn_out, y))[0]
+            snn1_acc = AllReduce.apply(self.evaluator(cnn_out, y))
             lin1_acc = AllReduce.apply(self._accuracy(y_hat, y))
             self.evaluator.update(cnn_out, y)
 
@@ -139,6 +175,7 @@ class ProgressBar:
                                    width=8,
                                    always_stateful=False)
 
-    def update(self, value_list):
+    def update(self, value_dict):
         if self.is_active:
-            self.kbar.add(1, values=value_list)
+            values = [(k,v) for (k,v) in value_dict.items()]
+            self.kbar.add(1, values=values)

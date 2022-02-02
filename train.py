@@ -17,6 +17,7 @@ parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--batch-size', type=int, default=256)
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--lr', type=float, default=0.3)
+parser.add_argument('--save_dir', type=str, default="checkpoints")
 parser.add_argument('--devices', type=str, nargs='+', default=['0'])
 
 
@@ -77,7 +78,8 @@ def main(rank, world_size, port, args):
     # Optimizer
     optimizer = LARS(model.parameters(), lr=args.lr, weight_decay=1e-4)
 
-    trainer = SSLTrainer(model, optimizer, (train_loader, val_loader), device=device, rank=rank)
+    save_kwargs = {"method" : args.method, "dataset" : args.dataset, "save_dir" : args.save_dir}
+    trainer = SSLTrainer(model, optimizer, (train_loader, val_loader), device=device, rank=rank, save_kwargs=save_kwargs)
     trainer.train(args.epochs, args.lr)
 
 
