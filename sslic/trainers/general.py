@@ -7,7 +7,7 @@ from abc import ABC
 
 from typing import Tuple
 
-from ..utils import WarmupCosineSchedule
+from ..utils import WarmupCosineSchedule, AllReduce
 
 
 class GeneralTrainer(ABC):
@@ -140,7 +140,7 @@ class GeneralTrainer(ABC):
         """
         pred = torch.max(y_hat.data, 1)[1]
         acc = (pred == y).sum() / len(y)
-        return acc
+        return AllReduce.apply(acc)
 
 
 class ProgressBar:

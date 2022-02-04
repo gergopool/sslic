@@ -23,7 +23,7 @@ class SSLTrainer(GeneralTrainer):
         # Soft nearest neighbor evaluator
         self.evaluator = SnnEvaluator(self.model.prev_dim,
                                       self.model.n_classes,
-                                      5000 // self.model.n_classes).cuda()
+                                      10 * self.model.n_classes).cuda()
 
     def _ckp_name(self, epoch):
         """_ckp_name 
@@ -80,8 +80,8 @@ class SSLTrainer(GeneralTrainer):
             # Note: calculating approximate linear eval accuracy is safe
             # because the cnn embeddings are detached
             cnn_out = cnn_out.float()
-            metrics['snn1_acc'] = AllReduce.apply(self.evaluator(cnn_out.detach(), y))
-            metrics['lin1_acc'] = AllReduce.apply(self._accuracy(y_hat, y))
+            metrics['snn_top1'], metrics['snn_top5'] = self.evaluator(cnn_out, y)
+            metrics['lin1_acc'] = self._accuracy(y_hat, y)
             self.evaluator.update(cnn_out, y)
 
         # Backprop
@@ -123,7 +123,7 @@ class SSLTrainer(GeneralTrainer):
                 z = self.model.encoder(x)
                 y_hat = self.model.classifier(z)
 
-                metrics['snn_top1'] = AllReduce.apply(self.evaluator(z, y))
-                metrics['lin_top1'] = AllReduce.apply(self._accuracy(y_hat, y))
+                metrics['snn_top1'], metrics['snn_top5'] = self.evaluator(z, y)
+                metrics['lin_top1'] = self._accuracy(y_hat, y)
 
         return metrics
