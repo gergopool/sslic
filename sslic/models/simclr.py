@@ -14,7 +14,7 @@ class SimCLR(BaseModel):
     Credits: https://github.com/google-research/simclr
     """
 
-    def __init__(self, base_encoder, **kwargs):
+    def __init__(self, base_encoder: nn.Module, **kwargs):
         super(SimCLR, self).__init__(base_encoder, ssl_loss=simclr_loss(), **kwargs)
 
         # Projection head
