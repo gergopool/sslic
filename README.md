@@ -1,4 +1,5 @@
 # Self-supervised Image Classification in PyTorch
+
  - [x] Training
  - [x] Linear eval
  - [x] Soft-nearest neighbor online classifier
@@ -33,3 +34,7 @@ You can replace simsiam wih any algorithms described above. See parsed arguments
 ```
 python lin_eval.py path/to/checkpoint.pth.tar path/to/cifar10/root --devices 0 1
 ```
+
+## Credits
+
+Some parts of the code was inherited from different repositories of the facebookresearch team, so huge credit goes there.
