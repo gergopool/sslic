@@ -3,7 +3,6 @@ from torch import nn
 from .barlow_twins import *
 from .simclr import *
 from .simsiam import *
-from .lin_eval_model import *
 
 n_classes = {"imagenet": 1000, "cifar10": 10, "cifar100": 100}
 

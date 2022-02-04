@@ -35,9 +35,3 @@ class BaseModel(nn.Module):
         self.encoder = base_encoder(**kwargs)
         self.prev_dim = self.encoder.fc.weight.shape[1]
         self.encoder.fc = nn.Identity()
-
-        self.classifier = nn.Linear(self.prev_dim, n_classes)
-        self.lin_eval_loss = nn.CrossEntropyLoss()
-
-    def classifier_loss(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return self.lin_eval_loss(y_hat, y)

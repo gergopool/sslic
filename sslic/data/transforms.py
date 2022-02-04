@@ -70,7 +70,7 @@ def imagenet_mocov2(split='train'):
 def small_moco_like(dataset_name='cifar10', split='train'):
     if split == 'ssl':
         aug = transforms.Compose([
-            transforms.Resize(32),
+            transforms.RandomResizedCrop(32, scale=(0.2, 1.)),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.RandomHorizontalFlip(),
