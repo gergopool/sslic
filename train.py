@@ -17,7 +17,7 @@ parser.add_argument('data_root', type=str)
 parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--batch-size', type=int, default=256)
 parser.add_argument('--epochs', type=int, default=100)
-parser.add_argument('--lr', type=float, default=0.03)
+parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--save_dir', type=str, default="checkpoints")
 parser.add_argument('--devices', type=str, nargs='+', default=['0'])
 
@@ -85,7 +85,8 @@ def main(rank, world_size, port, args):
     model = get_model(world_size, args)
 
     # Optimizer
-    optimizer = LARS(model.parameters(), lr=args.lr, max_epoch=args.epochs)
+    # optimizer = LARS(model.parameters(), lr=args.lr, max_epoch=args.epochs)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
     # Training parameters
     save_dir = os.path.join(args.save_dir, f"{args.method}_{args.dataset}")

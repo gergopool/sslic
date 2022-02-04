@@ -4,7 +4,7 @@
  - [x] Linear eval
  - [x] Soft-nearest neighbor online classifier
  - [x] Warmup cosine schedule
- - [x] Lars
+ - [ ] Lars
  - [x] Multi-GPU training
  - [ ] Tensorboard
  - [ ] Reproduction of results published
