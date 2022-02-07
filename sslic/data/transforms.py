@@ -10,16 +10,13 @@ from torchvision.transforms import Normalize
 
 NORMS = {
     "imagenet": {
-        "mean": [0.485, 0.456, 0.406],
-        "std": [0.229, 0.224, 0.225]
+        "mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]
     },
     "cifar10": {
-        "mean": [0.491, 0.482, 0.447],
-        "std": [0.202, 0.199, 0.201]
+        "mean": [0.4914, 0.4822, 0.4465], "std": [0.2023, 0.1994, 0.2010]
     },
     "cifar100": {
-        "mean": [0.507, 0.487, 0.441],
-        "std": [0.268, 0.257, 0.276]
+        "mean": [0.5071, 0.4867, 0.4408], "std": [0.2675, 0.2565, 0.2761]
     }
 }
 
@@ -87,9 +84,7 @@ def small_moco_like(dataset_name='cifar10', split='train'):
         ])
     elif split == 'test':
         return transforms.Compose(
-            [transforms.Resize(32),
-             transforms.ToTensor(),
-             normalize(dataset_name)])
+            [transforms.Resize(32), transforms.ToTensor(), normalize(dataset_name)])
     else:
         raise NameError(f"Split name unknown: {split}")
 
@@ -101,7 +96,8 @@ def imagenet_barlow_twins(split='train'):
             transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply(
-                [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)], p=0.8),
+                [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)],
+                p=0.8),
             transforms.RandomGrayscale(p=0.2),
             GaussianBlur([.1, 2.]),
             Solarization(p=0.0),
@@ -112,7 +108,8 @@ def imagenet_barlow_twins(split='train'):
             transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply(
-                [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)], p=0.8),
+                [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)],
+                p=0.8),
             transforms.RandomGrayscale(p=0.2),
             GaussianBlur([.1, 2.]),
             Solarization(p=0.2),
@@ -122,9 +119,10 @@ def imagenet_barlow_twins(split='train'):
         return MultiCropTransform([aug1, aug2])
     else:
         return imagenet_mocov2(split)
-    
+
 
 class Solarization(object):
+
     def __init__(self, p):
         self.p = p
 
@@ -137,6 +135,7 @@ class Solarization(object):
 
 class GaussianBlur(object):
     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
+
     def __init__(self, sigma=[.1, 2.]):
         self.sigma = sigma
 
@@ -152,6 +151,7 @@ class GaussianBlur(object):
 
 
 class MultiCropTransform:
+
     def __init__(self, trans_list):
         self.trans_list = trans_list
 

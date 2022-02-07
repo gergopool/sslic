@@ -10,6 +10,7 @@ from sslic.models import get_ssl_method
 from sslic.data import get_dataset_provider
 import sslic.utils as utils
 from sslic.lars import LARS
+from sslic.knn_evaluator import KNNEvaluator
 
 parser = argparse.ArgumentParser(description='Simple settings.')
 parser.add_argument('method', type=str, choices=['simsiam', 'simclr', 'barlow_twins'])
@@ -91,10 +92,18 @@ def main(rank, world_size, port, args):
     # Training parameters
     save_dir = os.path.join(args.save_dir, f"{args.method}_{args.dataset}")
     save_params = {"method": args.method, "dataset": args.dataset, "save_dir": save_dir}
+
+    evaluator = KNNEvaluator(model.encoder,
+                             model.prev_dim,
+                             args.dataset,
+                             args.data_root,
+                             args.batch_size)
+
     trainer = SSLTrainer(model,
                          optimizer, (train_loader, val_loader),
                          rank=rank,
-                         save_params=save_params)
+                         save_params=save_params,
+                         evaluator=evaluator)
 
     # Train
     trainer.train(args.epochs, args.lr)

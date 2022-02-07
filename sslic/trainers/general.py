@@ -8,6 +8,7 @@ from abc import ABC
 from typing import Tuple
 
 from ..utils import WarmupCosineSchedule, AllReduce
+from ..knn_evaluator import KNNEvaluator
 
 
 class GeneralTrainer(ABC):
@@ -35,6 +36,10 @@ class GeneralTrainer(ABC):
         which tells to which folder the model should be saved. If
         save_dir is None, the trainer will not save anything.
         By default {"save_dir": None}
+    evaluator : KNNEvaluator, optional
+        An evaluator for the model which calculates the KNN accuracies.
+        If None, this step is skipped.
+        By default None.
     """
 
     def __init__(self,
@@ -42,17 +47,19 @@ class GeneralTrainer(ABC):
                  optimizer: torch.optim.Optimizer,
                  data_loaders: Tuple[DataLoader, DataLoader],
                  rank: int = None,
-                 save_params: dict = {"save_dir": None}):
+                 save_params: dict = {"save_dir": None},
+                 evaluator: KNNEvaluator = None):
         self.model = model
         self.optimizer = optimizer
         self.train_loader, self.val_loader = data_loaders
         self.rank = rank
         self.save_dir = save_params.pop('save_dir')
         self.save_dict = save_params
+        self.evaluator = evaluator
         self.scaler = torch.cuda.amp.GradScaler()
 
         # Progress bar with running average metrics
-        self.pbar = ProgressBar(data_loaders, rank)
+        self.pbar = ProgressBar([self.train_loader], rank)
 
         # Checkpoints in which we save the model
         self.save_checkpoints = []
@@ -114,19 +121,23 @@ class GeneralTrainer(ABC):
             # Reset progress bar to the start of the line
             self.pbar.reset(epoch, n_epochs)
 
-            # Train one epoch
-            for data_batch in self.train_loader:
-                metrics = self.train_step(data_batch)
-                self.pbar.update(metrics)
+            # Train
+            self.train_an_epoch()
 
-            # Validate one epoch
-            for data_batch in self.val_loader:
-                metrics = self.val_step(data_batch)
-                self.pbar.update(metrics)
+            # Validate
+            self.run_validation()
 
             # Save network
             if self._need_save(epoch):
                 self._save(epoch)
+
+    def train_an_epoch(self):
+        for data_batch in self.train_loader:
+            metrics = self.train_step(data_batch)
+            self.pbar.update(metrics)
+
+    def run_validation(self):
+        _ = self.evaluator([1, 5]).detach().cpu().numpy()
 
     def train_step(self, batch: torch.Tensor):
         raise NotImplementedError
@@ -146,7 +157,7 @@ class GeneralTrainer(ABC):
 class ProgressBar:
 
     def __init__(self, data_loaders, rank):
-        self.n_iter = len(data_loaders[0]) + len(data_loaders[1])
+        self.n_iter = sum([len(x) for x in data_loaders])
         self.kbar = None
         self.is_active = rank is None or rank == 0
 
