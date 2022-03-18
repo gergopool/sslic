@@ -9,18 +9,20 @@ from sslic.trainers import SSLTrainer
 from sslic.models import get_ssl_method
 from sslic.data import get_dataset_provider
 import sslic.utils as utils
-from sslic.lars import LARS
-from sslic.knn_evaluator import KNNEvaluator
+from sslic.larc import LARC
+from ssl_eval import Evaluator
+import torch.backends.cudnn as cudnn
 
 parser = argparse.ArgumentParser(description='Simple settings.')
 parser.add_argument('method', type=str, choices=['simsiam', 'simclr', 'barlow_twins'])
 parser.add_argument('data_root', type=str)
 parser.add_argument('--dataset', type=str, default='cifar10')
-parser.add_argument('--batch-size', type=int, default=256)
+parser.add_argument('--batch-size', type=int, default=512)
 parser.add_argument('--epochs', type=int, default=100)
-parser.add_argument('--lr', type=float, default=0.1)
+parser.add_argument('--lr', type=float, default=0.05)
 parser.add_argument('--save_dir', type=str, default="checkpoints")
 parser.add_argument('--devices', type=str, nargs='+', default=['0'])
+parser.add_argument('--weight-decay', type=float, default=1e-4)
 
 
 def get_data_loaders(rank, world_size, args):
@@ -78,30 +80,48 @@ def main(rank, world_size, port, args):
         device = torch.cuda.device(int(args.devices[rank]))
         torch.cuda.set_device(device)
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
+    if world_size > 1:
+        print(f"Rank{rank} running..")
+
+    # Divide batch size
+    args.lr = args.lr * args.batch_size / 256
+    args.batch_size = args.batch_size // world_size
 
     # Data Loaders
     train_loader, val_loader = get_data_loaders(rank, world_size, args)
 
     # Model
     model = get_model(world_size, args)
+    print(model)
+
+    optim_params = [{
+        "params": model.encoder.parameters(), 'fix_lr': False
+    }, {
+        "params": model.projector.parameters(), 'fix_lr': False
+    }, {
+        "params": model.predictor.parameters(), 'fix_lr': True
+    }]
 
     # Optimizer
-    # optimizer = LARS(model.parameters(), lr=args.lr, max_epoch=args.epochs)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+    optimizer = torch.optim.SGD(optim_params,
+                                lr=args.lr,
+                                momentum=0.9,
+                                weight_decay=args.weight_decay)
+    # optimizer = LARC(optimizer, trust_coefficient=0.001, clip=False)
 
     # Training parameters
     save_dir = os.path.join(args.save_dir, f"{args.method}_{args.dataset}")
     save_params = {"method": args.method, "dataset": args.dataset, "save_dir": save_dir}
 
-    evaluator = KNNEvaluator(model.encoder,
-                             model.prev_dim,
-                             args.dataset,
-                             args.data_root,
-                             args.batch_size)
+    evaluator = None
+    evaluator = Evaluator(model.encoder,
+                          args.dataset,
+                          args.data_root,
+                          n_views=1,
+                          batch_size=args.batch_size)
 
     trainer = SSLTrainer(model,
                          optimizer, (train_loader, val_loader),
-                         rank=rank,
                          save_params=save_params,
                          evaluator=evaluator)
 
@@ -117,6 +137,8 @@ if __name__ == '__main__':
     # Choose a random port so multiple runs won't conflict with
     # a large chance.
     port = randint(0, 9999) + 40000
+
+    cudnn.benchmark = True
 
     if len(args.devices) > 1:
         mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))

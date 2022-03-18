@@ -43,6 +43,7 @@ class SSLTrainer(GeneralTrainer):
         """
         (x, y) = batch
         self.model.train()
+        device = self.device
 
         # Remove all possible gradients
         self.optimizer.zero_grad()
@@ -51,15 +52,15 @@ class SSLTrainer(GeneralTrainer):
         with torch.cuda.amp.autocast(enabled=True):
 
             # Predict
-            y = y.cuda(non_blocking=True)
-            x = [t.cuda(non_blocking=True) for t in x]
+            y = y.to(device)
+            x = [t.to(device) for t in x]
             _, representations = self.model(x)
 
-        # For loss calculation use fp32
-        with torch.cuda.amp.autocast(enabled=False):
+            # For loss calculation use fp32
+            # with torch.cuda.amp.autocast(enabled=False):
 
             # Convert back to fp32
-            representations = [x.float() for x in representations]
+            # representations = [x.float() for x in representations]
 
             # Calculate loss
             loss = self.model.ssl_loss(*representations)
@@ -68,6 +69,7 @@ class SSLTrainer(GeneralTrainer):
         self.scaler.scale(loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
-        self.scheduler.step()
+        # loss.backward()
+        # self.optimizer.step()
 
         return {"loss": loss.item()}
