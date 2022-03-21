@@ -3,6 +3,7 @@ import random
 import torch
 from PIL import Image, ImageFilter, ImageOps
 from torchvision.transforms import Normalize
+from torchvision.transforms.functional import InterpolationMode
 
 # =======================================================================
 # Normalization
@@ -26,7 +27,7 @@ def normalize(dataset_name):
     if dataset_name not in NORMS:
         raise NameError(f"No norm values have been defined to dataset {dataset_name}")
     norm_data = NORMS[dataset_name]
-    return Normalize(norm_data["mean"], norm_data["std"])
+    return Normalize(**norm_data)
 
 
 # =======================================================================
@@ -48,7 +49,7 @@ def imagenet_mocov2(split='train'):
         return MultiCropTransform([aug, aug])
     elif split == 'train':
         return transforms.Compose([
-            transforms.Resize(224),
+            transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize("imagenet")
@@ -93,7 +94,7 @@ def imagenet_barlow_twins(split='train'):
     # Code from https://github.com/facebookresearch/barlowtwins/blob/main/main.py
     if split == 'ssl':
         aug1 = transforms.Compose([
-            transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
+            transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply(
                 [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)],
@@ -105,7 +106,7 @@ def imagenet_barlow_twins(split='train'):
             normalize("imagenet")
         ])
         aug2 = transforms.Compose([
-            transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
+            transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply(
                 [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)],

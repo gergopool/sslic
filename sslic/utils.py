@@ -4,6 +4,13 @@ import torch
 import torch.distributed as dist
 
 
+def after_init_world_size_n_rank():
+    if dist.is_available() and dist.is_initialized():
+        return dist.get_world_size(), dist.get_rank()
+    else:
+        return 1, 0
+
+
 # Code credits:
 # https://github.com/facebookresearch/suncet/blob/main/src/utils.py
 def init_distributed(port=40011, rank_and_world_size=(None, None)):
@@ -28,7 +35,6 @@ def init_distributed(port=40011, rank_and_world_size=(None, None)):
         # Open a random port
         os.environ['MASTER_PORT'] = str(port)
         dist.init_process_group(backend='nccl', world_size=world_size, rank=rank)
-        print(f'Using port: {port}')
     except Exception:
         world_size, rank = 1, 0
         print('WARNING: Distributed training not available')
@@ -37,6 +43,7 @@ def init_distributed(port=40011, rank_and_world_size=(None, None)):
 
 
 class AllGather(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, x):
         if (dist.is_available() and dist.is_initialized() and (dist.get_world_size() > 1)):
@@ -57,6 +64,7 @@ class AllGather(torch.autograd.Function):
 
 
 class AllReduce(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, x):
         if (dist.is_available() and dist.is_initialized() and (dist.get_world_size() > 1)):
@@ -70,6 +78,7 @@ class AllReduce(torch.autograd.Function):
 
 
 class DDP(torch.nn.parallel.DistributedDataParallel):
+
     def __getattr__(self, name):
         try:
             return super().__getattr__(name)
@@ -78,11 +87,8 @@ class DDP(torch.nn.parallel.DistributedDataParallel):
 
 
 class WarmupCosineSchedule(torch.optim.lr_scheduler.LambdaLR):
-    def __init__(self,
-                 optimizer,
-                 warmup_steps,
-                 T_max,
-                 ref_lr):
+
+    def __init__(self, optimizer, warmup_steps, T_max, ref_lr):
         self.warmup_steps = max(1, warmup_steps)
         self.T_max = max(1, T_max - warmup_steps)
         self.start_lr = ref_lr / 10
@@ -92,16 +98,15 @@ class WarmupCosineSchedule(torch.optim.lr_scheduler.LambdaLR):
 
     def _warmup(self, step):
         progress = step / self.warmup_steps
-        new_lr = progress * self.ref_lr + (1-progress) * self.start_lr
+        new_lr = progress * self.ref_lr + (1 - progress) * self.start_lr
         return new_lr / self.ref_lr
 
     def _cosine(self, step):
         progress = (step - self.warmup_steps) / self.T_max
         cos_progress = (1. + math.cos(math.pi * progress)) * 0.5
-        new_lr = cos_progress * self.ref_lr + (1-cos_progress) * self.final_lr
+        new_lr = cos_progress * self.ref_lr + (1 - cos_progress) * self.final_lr
         return new_lr / self.ref_lr
 
     def lr_lambda(self, step):
         in_warump_phase = step < self.warmup_steps
         return self._warmup(step) if in_warump_phase else self._cosine(step)
-        

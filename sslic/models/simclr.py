@@ -36,7 +36,7 @@ class SimCLR(BaseModel):
 
 
 def simclr_imagenet() -> nn.Module:
-    return SimCLR(models.resnet50, dim=2048, n_classes=1000, zero_init_residual=True)
+    return SimCLR(models.resnet50, dim=512, n_classes=1000, zero_init_residual=True)
 
 
 def simclr_cifar10() -> nn.Module:

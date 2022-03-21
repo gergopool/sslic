@@ -1,14 +1,14 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-import pkbar
 import os
 from abc import ABC
 
 from typing import Tuple
 
-from ..utils import WarmupCosineSchedule, AllReduce
-from ..knn_evaluator import KNNEvaluator
+from .. import pkbar
+from ..utils import AllReduce, after_init_world_size_n_rank
+from ssl_eval import Evaluator
 
 
 class GeneralTrainer(ABC):
@@ -25,9 +25,6 @@ class GeneralTrainer(ABC):
         The optimizer to use for training.
     data_loaders : Tuple[DataLoader, DataLoader]
         Train and validation data loaders
-    rank : int, optional
-        The rank of this process. If None, it will assume the
-        training is running a single process. By default None
     save_params : dict, optional
         Parameters used for saving the network.
         These parameters can be the name of the method and the name
@@ -46,23 +43,26 @@ class GeneralTrainer(ABC):
                  model: nn.Module,
                  optimizer: torch.optim.Optimizer,
                  data_loaders: Tuple[DataLoader, DataLoader],
-                 rank: int = None,
                  save_params: dict = {"save_dir": None},
-                 evaluator: KNNEvaluator = None):
+                 evaluator: Evaluator = None):
         self.model = model
         self.optimizer = optimizer
         self.train_loader, self.val_loader = data_loaders
-        self.rank = rank
         self.save_dir = save_params.pop('save_dir')
         self.save_dict = save_params
         self.evaluator = evaluator
         self.scaler = torch.cuda.amp.GradScaler()
+        self.world_size, self.rank = after_init_world_size_n_rank()
 
         # Progress bar with running average metrics
-        self.pbar = ProgressBar([self.train_loader], rank)
+        self.pbar = ProgressBar([self.train_loader], self.rank)
 
         # Checkpoints in which we save the model
         self.save_checkpoints = []
+
+    @property
+    def device(self):
+        return next(self.model.parameters()).device
 
     def _need_save(self, epoch: int) -> bool:
         """_need_save
@@ -97,6 +97,16 @@ class GeneralTrainer(ABC):
         filepath = os.path.join(self.save_dir, filename)
         torch.save(save_dict, filepath)
 
+    def adjust_learning_rate(self, optimizer, init_lr, epoch, epochs):
+        """Decay the learning rate based on schedule"""
+        import math
+        cur_lr = init_lr * 0.5 * (1. + math.cos(math.pi * epoch / epochs))
+        for param_group in optimizer.param_groups:
+            if 'fix_lr' in param_group and param_group['fix_lr']:
+                param_group['lr'] = init_lr
+            else:
+                param_group['lr'] = cur_lr
+
     def train(self, n_epochs: int, ref_lr: float = 0.1, n_warmup_epochs: int = 10):
         """train
         Train n epochs.
@@ -112,20 +122,23 @@ class GeneralTrainer(ABC):
         """
 
         n_warmup_iter = len(self.train_loader) * n_warmup_epochs
-        self.scheduler = WarmupCosineSchedule(optimizer=self.optimizer,
-                                              warmup_steps=n_warmup_iter,
-                                              T_max=n_epochs,
-                                              ref_lr=ref_lr)
 
         for epoch in range(n_epochs):
             # Reset progress bar to the start of the line
             self.pbar.reset(epoch, n_epochs)
 
+            # Set epoch in sampler
+            self.train_loader.sampler.set_epoch(epoch)
+
+            # Adjust learning rate accordingly to epoch
+            self.adjust_learning_rate(self.optimizer, ref_lr, epoch, n_epochs)
+
             # Train
             self.train_an_epoch()
 
             # Validate
-            self.run_validation()
+            if (epoch + 1) % 5 == 0:
+                self.run_validation()
 
             # Save network
             if self._need_save(epoch):
@@ -137,7 +150,10 @@ class GeneralTrainer(ABC):
             self.pbar.update(metrics)
 
     def run_validation(self):
-        _ = self.evaluator([1, 5]).detach().cpu().numpy()
+        self.evaluator.generate_embeddings()
+        batch_size = 4096 // self.world_size
+        init_lr = (batch_size / 256) * 0.1
+        self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
 
     def train_step(self, batch: torch.Tensor):
         raise NotImplementedError
