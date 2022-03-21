@@ -1,0 +1,2 @@
+IMAGE_NAME=koszpe/ssl
+REPO_NAME=ssl  # This affect the folder structure created by docker_run.sh script

@@ -68,7 +68,7 @@ def get_model(world_size, args):
     # Create distributed version if needed
     if world_size > 1:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        model = utils.DDP(model, broadcast_buffers=False)
+        model = utils.DDP(model)
 
     return model
 

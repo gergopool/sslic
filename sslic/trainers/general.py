@@ -128,7 +128,8 @@ class GeneralTrainer(ABC):
             self.pbar.reset(epoch, n_epochs)
 
             # Set epoch in sampler
-            self.train_loader.sampler.set_epoch(epoch)
+            if self.world_size > 1:
+                self.train_loader.sampler.set_epoch(epoch)
 
             # Adjust learning rate accordingly to epoch
             self.adjust_learning_rate(self.optimizer, ref_lr, epoch, n_epochs)
