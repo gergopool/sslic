@@ -153,7 +153,7 @@ class GeneralTrainer(ABC):
     def run_validation(self):
         self.evaluator.generate_embeddings()
         batch_size = 4096 // self.world_size
-        init_lr = (batch_size / 256) * 0.1
+        init_lr = 1.6
         self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
 
     def train_step(self, batch: torch.Tensor):

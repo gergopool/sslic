@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-from ..losses.simclr import simclr_loss
+from ..losses import simclr_loss
 from .base_model import BaseModel
 
 __all__ = ['simclr_imagenet', 'simclr_cifar10', 'simclr_cifar100']

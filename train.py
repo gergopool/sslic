@@ -4,14 +4,14 @@ import torch
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
 from random import randint
+import torch.backends.cudnn as cudnn
 
 from sslic.trainers import SSLTrainer
 from sslic.models import get_ssl_method
 from sslic.data import get_dataset_provider
 import sslic.utils as utils
-from sslic.larc import LARC
+from sslic.optimizers import get_optimizer
 from ssl_eval import Evaluator
-import torch.backends.cudnn as cudnn
 
 parser = argparse.ArgumentParser(description='Simple settings.')
 parser.add_argument('method', type=str, choices=['simsiam', 'simclr', 'barlow_twins'])
@@ -19,13 +19,11 @@ parser.add_argument('data_root', type=str)
 parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--batch-size', type=int, default=512)
 parser.add_argument('--epochs', type=int, default=100)
-parser.add_argument('--lr', type=float, default=0.05)
 parser.add_argument('--save_dir', type=str, default="checkpoints")
 parser.add_argument('--devices', type=str, nargs='+', default=['0'])
-parser.add_argument('--weight-decay', type=float, default=1e-4)
 
 
-def get_data_loaders(rank, world_size, args):
+def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
     '''Define data loaders to a specific process.'''
 
     # Create datasets
@@ -45,14 +43,14 @@ def get_data_loaders(rank, world_size, args):
 
     # Data loaders
     train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=args.batch_size,
+                                               batch_size=per_gpu_batch_size,
                                                shuffle=shuffle,
                                                num_workers=8,
                                                pin_memory=True,
                                                persistent_workers=True,
                                                sampler=train_sampler)
     val_loader = torch.utils.data.DataLoader(val_dataset,
-                                             batch_size=args.batch_size,
+                                             batch_size=per_gpu_batch_size,
                                              shuffle=False,
                                              num_workers=8,
                                              pin_memory=True,
@@ -82,32 +80,19 @@ def main(rank, world_size, port, args):
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
     if world_size > 1:
         print(f"Rank{rank} running..")
+        torch.distributed.barrier()
 
     # Divide batch size
-    args.lr = args.lr * args.batch_size / 256
-    args.batch_size = args.batch_size // world_size
+    per_gpu_batch_size = args.batch_size // world_size
 
     # Data Loaders
-    train_loader, val_loader = get_data_loaders(rank, world_size, args)
+    train_loader, val_loader = get_data_loaders(rank, world_size, per_gpu_batch_size, args)
 
     # Model
     model = get_model(world_size, args)
     print(model)
 
-    optim_params = [{
-        "params": model.encoder.parameters(), 'fix_lr': False
-    }, {
-        "params": model.projector.parameters(), 'fix_lr': False
-    }, {
-        "params": model.predictor.parameters(), 'fix_lr': True
-    }]
-
-    # Optimizer
-    optimizer = torch.optim.SGD(optim_params,
-                                lr=args.lr,
-                                momentum=0.9,
-                                weight_decay=args.weight_decay)
-    # optimizer = LARC(optimizer, trust_coefficient=0.001, clip=False)
+    optimizer = get_optimizer(args.method, model, batch_size=args.batch_size)
 
     # Training parameters
     save_dir = os.path.join(args.save_dir, f"{args.method}_{args.dataset}")
@@ -118,7 +103,7 @@ def main(rank, world_size, port, args):
                           args.dataset,
                           args.data_root,
                           n_views=1,
-                          batch_size=args.batch_size)
+                          batch_size=per_gpu_batch_size)
 
     trainer = SSLTrainer(model,
                          optimizer, (train_loader, val_loader),
@@ -126,7 +111,7 @@ def main(rank, world_size, port, args):
                          evaluator=evaluator)
 
     # Train
-    trainer.train(args.epochs, args.lr)
+    trainer.train(args.epochs, ref_lr=optimizer.param_groups[0]['lr'])
 
 
 if __name__ == '__main__':

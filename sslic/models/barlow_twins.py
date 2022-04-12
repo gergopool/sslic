@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from ..losses.barlow_twins import barlow_twins_loss
+from ..losses import barlow_twins_loss
 from .base_model import BaseModel
 from torchvision import models
 

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from ..losses.simsiam import simsiam_loss
+from ..losses import simsiam_loss, proto_loss
 from .base_model import BaseModel
 from torchvision import models
 

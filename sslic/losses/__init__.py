@@ -2,6 +2,8 @@ from torch import nn
 from .barlow_twins import *
 from .simclr import *
 from .simsiam import *
+from .arcloss import *
+from .proto_loss import *
 
 
 def get_loss(method_name: str, **kwargs) -> nn.Module:
