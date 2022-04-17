@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+from typing import Callable
 
-from ..losses import simsiam_loss, proto_loss
+from ..losses import simsiam_loss
 from .base_model import BaseModel
 from torchvision import models
 
@@ -19,8 +20,13 @@ class SimSiam(BaseModel):
             Dimension of bottleneck layer at predict layer, by default 512
     """
 
-    def __init__(self, base_encoder: nn.Module, pred_dim: int = 512, mlp_len=3, **kwargs):
-        super(SimSiam, self).__init__(base_encoder, ssl_loss=simsiam_loss(), **kwargs)
+    def __init__(self,
+                 base_encoder: nn.Module,
+                 pred_dim: int = 512,
+                 mlp_len=3,
+                 ssl_loss: Callable = simsiam_loss(),
+                 **kwargs):
+        super(SimSiam, self).__init__(base_encoder, ssl_loss=ssl_loss, **kwargs)
         self.pred_dim = pred_dim
 
         # Projector
@@ -54,23 +60,24 @@ class SimSiam(BaseModel):
         p1 = self.predictor(z1)
         p2 = self.predictor(z2)
 
-        return h1, (p1, p2, z1, z2)
+        return p1, p2, z1, z2
 
 
-def simsiam_imagenet() -> nn.Module:
+def simsiam_imagenet(**kwargs) -> nn.Module:
     return SimSiam(models.resnet50,
                    pred_dim=512,
                    mlp_len=3,
                    dim=2048,
                    n_classes=1000,
-                   zero_init_residual=True)
+                   zero_init_residual=True,
+                   **kwargs)
 
 
-def simsiam_cifar10() -> nn.Module:
+def simsiam_cifar10(**kwargs) -> nn.Module:
     from .cifar_resnet import resnet18
-    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=10)
+    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=10, **kwargs)
 
 
-def simsiam_cifar100() -> nn.Module:
+def simsiam_cifar100(**kwargs) -> nn.Module:
     from .cifar_resnet import resnet18
-    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=100)
+    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=100, **kwargs)

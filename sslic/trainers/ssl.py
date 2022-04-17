@@ -15,7 +15,7 @@ class SSLTrainer(GeneralTrainer):
         super(SSLTrainer, self).__init__(*args, **kwargs)
 
         # Checkpoints in which we save
-        self.save_checkpoints = [1, 10, 20, 50, 100, 200, 400, 600, 800, 1000]
+        self.save_checkpoints = [1, 10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 800, 1000]
 
     def _ckp_name(self, epoch):
         """_ckp_name 
@@ -54,16 +54,16 @@ class SSLTrainer(GeneralTrainer):
             # Predict
             y = y.to(device)
             x = [t.to(device) for t in x]
-            _, representations = self.model(x)
+            representations = self.model(x)
 
             # For loss calculation use fp32
-            # with torch.cuda.amp.autocast(enabled=False):
+            with torch.cuda.amp.autocast(enabled=False):
 
-            # Convert back to fp32
-            # representations = [x.float() for x in representations]
+                # Convert back to fp32
+                representations = [x.float() for x in representations]
 
-            # Calculate loss
-            loss = self.model.ssl_loss(*representations)
+                # Calculate loss
+                loss = self.model.ssl_loss(*representations)
 
         # Backprop
         self.scaler.scale(loss).backward()

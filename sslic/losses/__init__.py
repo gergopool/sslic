@@ -3,7 +3,9 @@ from .barlow_twins import *
 from .simclr import *
 from .simsiam import *
 from .arcloss import *
-from .proto_loss import *
+from .twist import *
+from .ressl import *
+from .experimental import *
 
 
 def get_loss(method_name: str, **kwargs) -> nn.Module:

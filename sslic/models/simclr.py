@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
+from typing import Callable
 
 from ..losses import simclr_loss
 from .base_model import BaseModel
@@ -14,8 +15,8 @@ class SimCLR(BaseModel):
     Credits: https://github.com/google-research/simclr
     """
 
-    def __init__(self, base_encoder: nn.Module, **kwargs):
-        super(SimCLR, self).__init__(base_encoder, ssl_loss=simclr_loss(), **kwargs)
+    def __init__(self, base_encoder: nn.Module, ssl_loss: Callable = simclr_loss(), **kwargs):
+        super(SimCLR, self).__init__(base_encoder, ssl_loss=ssl_loss, **kwargs)
 
         # Projection head
         self.projector = nn.Sequential(nn.Linear(self.prev_dim, self.prev_dim),
@@ -32,18 +33,18 @@ class SimCLR(BaseModel):
         z1 = self.projector(h1)
         z2 = self.projector(h2)
 
-        return h1, (z1, z2)
+        return z1, z2
 
 
-def simclr_imagenet() -> nn.Module:
-    return SimCLR(models.resnet50, dim=512, n_classes=1000, zero_init_residual=True)
+def simclr_imagenet(**kwargs) -> nn.Module:
+    return SimCLR(models.resnet50, dim=512, n_classes=1000, zero_init_residual=True, **kwargs)
 
 
-def simclr_cifar10() -> nn.Module:
+def simclr_cifar10(**kwargs) -> nn.Module:
     from .cifar_resnet import resnet18
-    return SimCLR(resnet18, dim=128, n_classes=10)
+    return SimCLR(resnet18, dim=128, n_classes=10, **kwargs)
 
 
-def simclr_cifar100() -> nn.Module:
+def simclr_cifar100(**kwargs) -> nn.Module:
     from .cifar_resnet import resnet18
-    return SimCLR(resnet18, dim=128, n_classes=100)
+    return SimCLR(resnet18, dim=128, n_classes=100, **kwargs)

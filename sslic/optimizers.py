@@ -44,7 +44,9 @@ def get_optimizer(method_name: str,
 
 def _base_lr(mode: str, batch_size: int):
     scale = batch_size / 256
-    lrs = {"simsiam": scale * 0.1, "simclr": scale * 0.3, "barlow_twins": scale}
+    lrs = {
+        "simsiam": scale * 0.1, "simclr": scale * 0.3, "barlow_twins": scale, "ressl": scale * 0.05
+    }
     return lrs[mode]
 
 
@@ -53,22 +55,30 @@ def _barlow_twins(*args, **kwargs):
 
 
 def _simclr(model: nn.Module, lr: float, weight_decay: float = 1e-6):
-    optim_params = [{
-        "params": model.encoder.parameters(), 'fix_lr': False
-    }, {
-        "params": model.projector.parameters(), 'fix_lr': False
-    }]
+    optim_params = [{"params": model.parameters(), 'fix_lr': False}]
     sgd = torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
     return LARC(sgd, trust_coefficient=0.001, clip=False)
 
 
+def _ressl(model: nn.Module, lr: float, weight_decay: float = 5e-4):
+    optim_params = [{"params": model.parameters()}]
+    return torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
+
+
 def _simsiam(model: nn.Module, lr: float, weight_decay: float = 1e-4):
-    optim_params = [{
-        "params": model.encoder.parameters(), 'fix_lr': False
-    }, {
-        "params": model.projector.parameters(), 'fix_lr': False
-    }, {
-        "params": model.predictor.parameters(), 'fix_lr': True
-    }]
+    optim_params = [
+        {
+            "params": model.encoder.parameters(), 'fix_lr': False
+        },
+        {
+            "params": model.projector.parameters(), 'fix_lr': False
+        },
+        {
+            "params": model.predictor.parameters(), 'fix_lr': True
+        },
+        {
+            "params": model.ssl_loss.parameters(), 'fix_lr': False
+        },
+    ]
 
     return torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
