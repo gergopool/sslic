@@ -34,9 +34,9 @@ class ProtoReSSLLoss(ReSSLLoss):
     def queue_loss(self):
         queue = self.queue.clone().detach()
         protos = F.normalize(self.protos, dim=1)
-        p = self.softmax(protos @ queue.T / self.tau_t)
+        p = self.softmax(queue @ protos.T / self.tau_t)
         entropy = torch.sum(p.mean(dim=0) * torch.log(p.mean(dim=0) + EPS))
-        return entropy / self.world_size / (self.queue_len / self.n_protos) * 0.1
+        return entropy / self.world_size
 
     def cross_entropy(self, x, y):
         return torch.sum(-y * torch.log(x + EPS), dim=1).mean()
@@ -45,22 +45,17 @@ class ProtoReSSLLoss(ReSSLLoss):
 
         z_t = F.normalize(z_t, dim=1)  # Teacher, easy aug
         z_s = F.normalize(z_s, dim=1)  # Student, hard aug
-        z_t_norm = F.normalize((z_t - self.queue_mean) / self.queue_std, dim=1)
 
         protos = F.normalize(self.protos, dim=1)  # Clusters
 
         p_s = self.softmax(z_s @ protos.T / self.tau_s)
-        p_t = self.softmax(z_t_norm @ protos.T / self.tau_t)
+        p_t = self.softmax(z_t @ protos.T / self.tau_t)
 
         # q = self.queue.clone().detach()
         # p_queue = self.softmax(z_t @ q.T / 0.1)  # batch_size x queue_len
         # p_t = self.softmax(p_queue @ q @ protos.T / self.tau_t)
 
-        loss = self.cross_entropy(p_s, p_t)  # + self.queue_loss
-
-        # proto_sim = (protos @ self.protos.T).fill_diagonal_(0).clip(0, 1).mean()
-
-        # + proto_sim
+        loss = self.cross_entropy(p_s, p_t) + self.queue_loss
 
         self.add_to_queue(z_t)
 

@@ -157,7 +157,7 @@ class GeneralTrainer(ABC):
             self.train_an_epoch()
 
             # Validate
-            if (epoch + 1) % 5 == 0 or epoch == 0:
+            if (epoch + 1) % 10 == 0 or epoch == 0:
                 self.run_validation()
 
             # Save network

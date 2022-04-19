@@ -116,7 +116,7 @@ def main(rank, world_size, port, args):
     evaluator = Evaluator(model.encoder,
                           args.dataset,
                           args.data_root,
-                          n_views=1,
+                          n_views=2,
                           batch_size=per_gpu_batch_size)
 
     trainer = SSLTrainer(model,
