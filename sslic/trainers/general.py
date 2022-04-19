@@ -53,6 +53,7 @@ class GeneralTrainer(ABC):
         self.evaluator = evaluator
         self.scaler = torch.cuda.amp.GradScaler()
         self.world_size, self.rank = after_init_world_size_n_rank()
+        self.start_epoch = 0
 
         # Progress bar with running average metrics
         self.pbar = ProgressBar([self.train_loader], self.rank)
@@ -97,6 +98,13 @@ class GeneralTrainer(ABC):
         filepath = os.path.join(self.save_dir, filename)
         torch.save(save_dict, filepath)
 
+    def load(self, path):
+        save_dict = torch.load(path)
+        self.model.load_state_dict(save_dict['state_dict'])
+        self.optimizer.load_state_dict(save_dict['optimizer'])
+        self.scaler.load_state_dict(save_dict['amp'])
+        self.start_epoch = save_dict['epoch']
+
     def adjust_learning_rate(self, optimizer, init_lr, epoch, epochs):
         """Decay the learning rate based on schedule"""
         import math
@@ -123,7 +131,7 @@ class GeneralTrainer(ABC):
 
         n_warmup_iter = len(self.train_loader) * n_warmup_epochs
 
-        for epoch in range(n_epochs):
+        for epoch in range(self.start_epoch, n_epochs):
             # Reset progress bar to the start of the line
             self.pbar.reset(epoch, n_epochs)
 

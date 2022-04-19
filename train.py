@@ -19,6 +19,7 @@ from ssl_eval import Evaluator
 parser = argparse.ArgumentParser(description='Simple settings.')
 parser.add_argument('method', type=str, choices=['simsiam', 'simclr', 'barlow_twins', 'ressl'])
 parser.add_argument('data_root', type=str)
+parser.add_argument('--resume', type=str, default=None)
 parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--run-name', type=str, default='dev')
 parser.add_argument('--batch-size', type=int, default=512)
@@ -125,6 +126,10 @@ def main(rank, world_size, port, args):
                          evaluator=evaluator)
 
     cudnn.benchmark = True
+
+    # Load if needed
+    if args.resume:
+        trainer.load(args.resume)
 
     # Train
     trainer.train(args.epochs, ref_lr=optimizer.param_groups[0]['lr'])
