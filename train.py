@@ -93,7 +93,7 @@ def main(rank, world_size, port, args):
         torch.cuda.set_device(device)
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
     if world_size > 1:
-        print(f"Rank{rank} running..")
+        print(f"Rank{rank} started succesfully.")
         # torch.distributed.barrier()
 
     # Divide batch size
@@ -104,7 +104,8 @@ def main(rank, world_size, port, args):
 
     # Model
     model = get_model(world_size, args)
-    print(model)
+    if rank == 0:
+        print(model)
 
     method = args.opt if args.opt else args.method
     optimizer = get_optimizer(method, model, batch_size=args.batch_size, lr=args.lr)
