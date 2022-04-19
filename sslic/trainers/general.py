@@ -107,25 +107,6 @@ class GeneralTrainer(ABC):
             else:
                 param_group['lr'] = cur_lr
 
-    # def adjust_learning_rate(self, optimizer, init_lr, epoch, epochs, warmup_epochs=5):
-    #     """Decay the learning rate based on schedule"""
-    #     import math
-
-    #     is_warmup = epoch < 5
-
-    #     if is_warmup:
-    #         progress = (epoch+1) / warmup_epochs
-    #         cur_lr = progress * init_lr
-    #     else:
-    #         progress = (epoch - warmup_epochs) / (epochs - warmup_epochs)
-    #         cur_lr = init_lr * 0.5 * (1. + math.cos(math.pi * progress))
-
-    #     for param_group in optimizer.param_groups:
-    #         if 'fix_lr' in param_group and param_group['fix_lr']:
-    #             param_group['lr'] = init_lr
-    #         else:
-    #             param_group['lr'] = cur_lr
-
     def train(self, n_epochs: int, ref_lr: float = 0.1, n_warmup_epochs: int = 10):
         """train
         Train n epochs.
