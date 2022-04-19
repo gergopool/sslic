@@ -73,7 +73,6 @@ if [[ "${CONTAINER_ID}" ]]; then
         -v /etc/passwd:/etc/passwd:ro \
         -v /etc/group:/etc/group:ro \
         -v /etc/shadow:/etc/shadow:ro \
-        -v /home/${USER}/work/ssl_eval/ssl_eval:/workspace/ssl_eval\
         --workdir=/workspace \
         $IMAGE $command
 else
