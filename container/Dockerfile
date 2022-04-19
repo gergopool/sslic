@@ -12,7 +12,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
 
 RUN echo "%docker  ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/inside_sudoers
 
-RUN pip install tensorboard ssl_eval
+RUN pip install tensorboard ssl_eval numpy pkbar
 
 ENV PYTHONPATH=/workspace
 WORKDIR /workspace
