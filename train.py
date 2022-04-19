@@ -1,7 +1,5 @@
 import argparse
 import os
-
-os.environ['TORCH_DISTRIBUTED_DEBUG'] = "DETAIL"
 import torch
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
@@ -79,8 +77,6 @@ def get_model(world_size, args):
     if world_size > 1:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = utils.DDP(model)
-        # model.ssl_loss = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model.ssl_loss)
-        # model.ssl_loss = utils.DDP(model.ssl_loss)
 
     return model
 
@@ -94,7 +90,7 @@ def main(rank, world_size, port, args):
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
     if world_size > 1:
         print(f"Rank{rank} started succesfully.")
-        # torch.distributed.barrier()
+        torch.distributed.barrier()
 
     # Divide batch size
     per_gpu_batch_size = args.batch_size // world_size
@@ -138,7 +134,6 @@ def main(rank, world_size, port, args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    # torch.multiprocessing.set_start_method("forkserver")
     num_gpus = len(args.devices)
 
     # Choose a random port so multiple runs won't conflict with

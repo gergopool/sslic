@@ -104,6 +104,7 @@ class GeneralTrainer(ABC):
         self.optimizer.load_state_dict(save_dict['optimizer'])
         self.scaler.load_state_dict(save_dict['amp'])
         self.start_epoch = save_dict['epoch']
+        torch.distributed.barrier()
 
     def adjust_learning_rate(self, optimizer, init_lr, epoch, epochs):
         """Decay the learning rate based on schedule"""
