@@ -149,6 +149,9 @@ if __name__ == '__main__':
     port = randint(0, 9999) + 40000
 
     if num_gpus > 1:
-        mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+        try:
+            mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+        except KeyboardInterrupt:
+            print('\nInterrupted. Attempting a graceful shutdown..')
     else:
         main(0, 1, port, args)

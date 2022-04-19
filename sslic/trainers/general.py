@@ -99,7 +99,7 @@ class GeneralTrainer(ABC):
         torch.save(save_dict, filepath)
 
     def load(self, path):
-        save_dict = torch.load(path)
+        save_dict = torch.load(path, map_location=self.device)
         self.model.load_state_dict(save_dict['state_dict'])
         self.optimizer.load_state_dict(save_dict['optimizer'])
         self.scaler.load_state_dict(save_dict['amp'])
@@ -147,7 +147,7 @@ class GeneralTrainer(ABC):
             self.train_an_epoch()
 
             # Validate
-            if (epoch + 1) % 10 == 0 or epoch == 0:
+            if (epoch + 1) % 5 == 0 or epoch == 0:
                 self.run_validation()
 
             # Save network
