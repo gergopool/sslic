@@ -26,7 +26,7 @@ parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
 parser.add_argument('--opt', type=str, default=None)
 parser.add_argument('--save_dir', type=str, default="checkpoints")
-parser.add_argument('--devices', type=str, nargs='+', default=['0'])
+parser.add_argument('--devices', type=int, nargs='+', default=[])
 
 
 def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
@@ -85,8 +85,12 @@ def main(rank, world_size, port, args):
 
     # Set device and distributed settings
     if torch.cuda.is_available():
-        device = torch.cuda.device(int(args.devices[rank]))
+        if args.devices:
+            device = torch.cuda.device(args.devices[rank])
+        else:
+            device = torch.cuda.device(rank)
         torch.cuda.set_device(device)
+
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
     if world_size > 1:
         print(f"Rank{rank} started succesfully.")
@@ -134,13 +138,17 @@ def main(rank, world_size, port, args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    num_gpus = len(args.devices)
+
+    if args.devices:
+        num_gpus = len(args.devices)
+    else:
+        num_gpus = torch.cuda.device_count()
 
     # Choose a random port so multiple runs won't conflict with
     # a large chance.
     port = randint(0, 9999) + 40000
 
-    if len(args.devices) > 1:
+    if num_gpus > 1:
         mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
     else:
         main(0, 1, port, args)
