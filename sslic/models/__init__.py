@@ -3,11 +3,12 @@ from torch import nn
 from .barlow_twins import *
 from .simclr import *
 from .simsiam import *
+from .ressl import *
 
 n_classes = {"imagenet": 1000, "cifar10": 10, "cifar100": 100}
 
 
-def get_ssl_method(method_name: str, dataset: str) -> nn.Module:
+def get_ssl_network(method_name: str, dataset: str, **kwargs) -> nn.Module:
     """Get SSL network based on name and dataset.
 
     Parameters
@@ -25,4 +26,4 @@ def get_ssl_method(method_name: str, dataset: str) -> nn.Module:
     method_name += "_" + dataset
     if method_name not in globals():
         raise NameError(f"Self-supervised method {method_name} is unknown.")
-    return globals()[method_name]()
+    return globals()[method_name](**kwargs)

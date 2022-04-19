@@ -5,25 +5,22 @@ from . import transforms
 
 
 def get_dataset_provider(root, dataset_name, method_name=None):
-    if method_name is None:
-        return MocoDataset(root, dataset_name)
-    method_name = method_name.lower()
-
-    if method_name in ['simclr', 'simsiam']:
-        return MocoDataset(root, dataset_name)
-    elif method_name == 'barlow_twins':
-        return BarlowTwinsDataset(root, dataset_name)
-    else:
-        raise NameError(f"Method unknown: {method_name}")
+    func_name = method_name + "_datasets"
+    if func_name not in globals():
+        raise NameError(f"Self-supervised dataset {method_name} is unknown.")
+    return globals()[func_name](root, dataset_name)
 
 
-class MocoDataset:
-    def __init__(self, root, dataset_name='imagenet'):
+class DatasetGenerator:
+
+    def __init__(self, root, dataset_name='imagenet', imagenet_trans=None, cifar_trans=None):
         self.root = root
         self.dataset_name = dataset_name.lower()
         if self.dataset_name not in ['imagenet', 'cifar10', 'cifar100']:
             raise NameError(f"Unknown dataset_name: {self.dataset_name}")
         self.dataset_fn = getattr(self, self.dataset_name)
+        self.imagenet_trans = imagenet_trans
+        self.cifar_trans = cifar_trans
 
     def __call__(self, split='ssl') -> torch.utils.data.Dataset:
         is_train = split in ['ssl', 'train']
@@ -32,24 +29,41 @@ class MocoDataset:
     def imagenet(self, split, is_train):
         imagenet_dir = "train" if is_train else "val"
         imagenet_dir = os.path.join(self.root, imagenet_dir)
-        trans = transforms.imagenet_mocov2(split)
+        trans = self.imagenet_trans(split)
         return datasets.ImageFolder(imagenet_dir, trans)
 
     def cifar10(self, split, is_train):
-        trans = transforms.small_moco_like("cifar10", split=split)
+        trans = self.cifar_trans("cifar10", split=split)
         return datasets.CIFAR10(self.root, is_train, trans)
 
     def cifar100(self, split, is_train):
-        trans = transforms.small_moco_like("cifar100", split=split)
+        trans = self.cifar_transe("cifar100", split=split)
         return datasets.CIFAR100(self.root, is_train, trans)
 
 
-class BarlowTwinsDataset(MocoDataset):
-    def imagenet(self, split, is_train):
-        imagenet_dir = "train" if is_train else "val"
-        imagenet_dir = os.path.join(self.root, imagenet_dir)
-        trans = transforms.imagenet_barlow_twins(split)
-        return datasets.ImageFolder(imagenet_dir, trans)
+def simsiam_datasets(root, dataset_name):
+    return DatasetGenerator(root,
+                            dataset_name,
+                            transforms.imagenet_mocov2,
+                            transforms.small_moco_like)
+
+
+def simclr_datasets(root, dataset_name):
+    return DatasetGenerator(root,
+                            dataset_name,
+                            transforms.imagenet_mocov2,
+                            transforms.small_moco_like)
+
+
+def barlow_twins_datasets(root, dataset_name):
+    return DatasetGenerator(root,
+                            dataset_name,
+                            transforms.imagenet_barlow_twins,
+                            transforms.small_moco_like)
+
+
+def ressl_datasets(root, dataset_name):
+    return DatasetGenerator(root, dataset_name, transforms.imagenet_ressl, transforms.small_ressl)
 
 
 if __name__ == "__main__":
@@ -59,7 +73,7 @@ if __name__ == "__main__":
 
     # Retrive img
     root = "/data/shared/data/imagenet"
-    dataset = get_dataset_provider(root, "simsiam", "imagenet")("ssl")
+    dataset = get_dataset_provider(root, "imagenet", method_name="ressl")("ssl")
     x, y = dataset[0]
 
     # Convert to human readable image

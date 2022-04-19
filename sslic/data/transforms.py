@@ -122,6 +122,49 @@ def imagenet_barlow_twins(split='train'):
         return imagenet_mocov2(split)
 
 
+def imagenet_ressl(split='train'):
+    if split == 'ssl':
+        aug_t = transforms.Compose([
+            transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize("imagenet")
+        ])
+        aug_s = transforms.Compose([
+            transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
+            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.RandomApply([GaussianBlur([.1, 2.])], p=0.5),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize("imagenet")
+        ])
+        return MultiCropTransform([aug_t, aug_s])
+    else:
+        return imagenet_mocov2(split)
+
+
+def small_ressl(dataset_name='cifar10', split='train'):
+    if split == 'ssl':
+        aug_t = transforms.Compose([
+            transforms.RandomResizedCrop(32, scale=(0.2, 1.)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize(dataset_name)
+        ])
+        aug_s = transforms.Compose([
+            transforms.RandomResizedCrop(32, scale=(0.2, 1.)),
+            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize(dataset_name)
+        ])
+        return MultiCropTransform([aug_t, aug_s])
+    else:
+        return small_moco_like(dataset_name, split)
+
+
 class Solarization(object):
 
     def __init__(self, p):
