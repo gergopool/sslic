@@ -26,7 +26,7 @@ parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
 parser.add_argument('--opt', type=str, default=None)
 parser.add_argument('--save_dir', type=str, default="checkpoints")
-parser.add_argument('--devices', type=int, nargs='+', default=[])
+parser.add_argument('--devices', type=str, nargs='+', default=[])
 
 
 def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
@@ -85,10 +85,7 @@ def main(rank, world_size, port, args):
 
     # Set device and distributed settings
     if torch.cuda.is_available():
-        if args.devices:
-            device = torch.cuda.device(args.devices[rank])
-        else:
-            device = torch.cuda.device(rank)
+        device = torch.cuda.device(rank)
         torch.cuda.set_device(device)
 
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
@@ -140,9 +137,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.devices:
-        num_gpus = len(args.devices)
-    else:
-        num_gpus = torch.cuda.device_count()
+        str_devices = ','.join(args.devices)
+        os.environ['CUDA_VISIBLE_DEVICES'] = str_devices
+
+    num_gpus = torch.cuda.device_count()
 
     # Choose a random port so multiple runs won't conflict with
     # a large chance.
