@@ -1,7 +1,5 @@
 import argparse
 import os
-
-os.environ['TORCH_DISTRIBUTED_DEBUG'] = "DETAIL"
 import torch
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
@@ -28,7 +26,7 @@ parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
 parser.add_argument('--opt', type=str, default=None)
 parser.add_argument('--save_dir', type=str, default="checkpoints")
-parser.add_argument('--devices', type=str, nargs='+', default=['0'])
+parser.add_argument('--devices', type=str, nargs='+', default=[])
 
 
 def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
@@ -79,8 +77,6 @@ def get_model(world_size, args):
     if world_size > 1:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = utils.DDP(model)
-        # model.ssl_loss = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model.ssl_loss)
-        # model.ssl_loss = utils.DDP(model.ssl_loss)
 
     return model
 
@@ -89,12 +85,13 @@ def main(rank, world_size, port, args):
 
     # Set device and distributed settings
     if torch.cuda.is_available():
-        device = torch.cuda.device(int(args.devices[rank]))
+        device = torch.cuda.device(rank)
         torch.cuda.set_device(device)
+
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
     if world_size > 1:
         print(f"Rank{rank} started succesfully.")
-        # torch.distributed.barrier()
+        torch.distributed.barrier()
 
     # Divide batch size
     per_gpu_batch_size = args.batch_size // world_size
@@ -138,14 +135,21 @@ def main(rank, world_size, port, args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    # torch.multiprocessing.set_start_method("forkserver")
-    num_gpus = len(args.devices)
+
+    if args.devices:
+        str_devices = ','.join(args.devices)
+        os.environ['CUDA_VISIBLE_DEVICES'] = str_devices
+
+    num_gpus = torch.cuda.device_count()
 
     # Choose a random port so multiple runs won't conflict with
     # a large chance.
     port = randint(0, 9999) + 40000
 
-    if len(args.devices) > 1:
-        mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+    if num_gpus > 1:
+        try:
+            mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+        except KeyboardInterrupt:
+            print('\nInterrupted. Attempting a graceful shutdown..')
     else:
         main(0, 1, port, args)
