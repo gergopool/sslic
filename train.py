@@ -27,7 +27,7 @@ parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
 parser.add_argument('--opt', type=str, default=None)
 parser.add_argument('--save-dir', type=str, default="checkpoints")
-parser.add_argument('--devices', type=str, nargs='+', default=['0'])
+parser.add_argument('--devices', type=str, nargs='+', default=[])
 
 
 def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
