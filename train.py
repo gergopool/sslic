@@ -27,6 +27,7 @@ parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
 parser.add_argument('--opt', type=str, default=None)
 parser.add_argument('--transform', type=str, default=None)
+parser.add_argument('--scheduler', type=str, default=None)
 parser.add_argument('--save-dir', type=str, default="checkpoints")
 parser.add_argument('--devices', type=str, nargs='+', default=[])
 
@@ -114,12 +115,14 @@ def main(rank, world_size, port, args):
     save_dir = os.path.join(args.save_dir, f"{args.method}_{args.dataset}", args.run_name)
     save_params = {"method": args.method, "dataset": args.dataset, "save_dir": save_dir}
 
+    # Evaluator
     evaluator = Evaluator(model.encoder,
                           args.dataset,
                           args.data_root,
                           n_views=2,
                           batch_size=per_gpu_batch_size)
 
+    # Logger
     logger = Logger(log_dir=save_dir,
                     global_step=0,
                     batch_size=args.batch_size,
@@ -127,10 +130,14 @@ def main(rank, world_size, port, args):
                     log_per_sample=1e4)
     logger.log_config(vars(args))
 
+    # Scheduler
+    scheduler_name = args.scheduler if args.scheduler else args.method
+
     trainer = SSLTrainer(model,
                          optimizer, (train_loader, val_loader),
                          save_params=save_params,
                          evaluator=evaluator,
+                         scheduler_name=scheduler_name,
                          logger=logger)
 
     cudnn.benchmark = True
@@ -140,7 +147,7 @@ def main(rank, world_size, port, args):
         trainer.load(args.resume)
 
     # Train
-    trainer.train(args.epochs, ref_lr=optimizer.param_groups[0]['lr'])
+    trainer.train(args.epochs)
 
 
 if __name__ == '__main__':
