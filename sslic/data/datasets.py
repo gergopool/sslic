@@ -1,4 +1,3 @@
-from flask import g
 import torchvision.datasets as datasets
 import torch
 import os
