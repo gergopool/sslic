@@ -65,7 +65,7 @@ class Scheduler:
 
     def step(self, iteration=None) -> None:
         self.iter_count = iteration if iteration else self.iter_count + 1
-        if self.iter_count >= self.iterations and self.rank == 0:
+        if self.iter_count > self.iterations and self.verbose:
             raise ValueError("Your scheduler overstepped the maximum number of iterations")
         self.on_step()
 

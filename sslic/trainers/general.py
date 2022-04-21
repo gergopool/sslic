@@ -137,7 +137,8 @@ class GeneralTrainer(ABC):
         self.scheduler = get_scheduler(self.scheduler_name,
                                        optimizer=self.optimizer,
                                        epochs=n_epochs,
-                                       ipe=len(self.train_loader))
+                                       ipe=len(self.train_loader),
+                                       verbose=self.rank == 0)
         self.scheduler.set_epoch(self.start_epoch)
 
         for epoch in range(self.start_epoch, n_epochs):
