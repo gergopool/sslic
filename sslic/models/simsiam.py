@@ -6,7 +6,7 @@ from ..losses import simsiam_loss
 from .base_model import BaseModel
 from torchvision import models
 
-__all__ = ['simsiam_imagenet', 'simsiam_cifar10', 'simsiam_cifar100']
+__all__ = ['simsiam_imagenet', 'simsiam_tiny_imagenet', 'simsiam_cifar10', 'simsiam_cifar100']
 
 
 class SimSiam(BaseModel):
@@ -71,6 +71,11 @@ def simsiam_imagenet(**kwargs) -> nn.Module:
                    n_classes=1000,
                    zero_init_residual=True,
                    **kwargs)
+
+
+def simsiam_tiny_imagenet(**kwargs) -> nn.Module:
+    from .cifar_resnet import resnet18
+    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=200, **kwargs)
 
 
 def simsiam_cifar10(**kwargs) -> nn.Module:

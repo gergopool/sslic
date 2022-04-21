@@ -8,7 +8,7 @@ from ..losses import ressl_loss
 from .base_model import BaseModel
 from ..utils import after_init_world_size_n_rank, AllGather
 
-__all__ = ['ressl_imagenet', 'ressl_cifar10', 'ressl_cifar100']
+__all__ = ['ressl_imagenet', 'ressl_tiny_imagenet', 'ressl_cifar10', 'ressl_cifar100']
 
 
 class ReSSL(BaseModel):
@@ -101,6 +101,11 @@ def ressl_imagenet(**kwargs) -> nn.Module:
                  n_classes=1000,
                  zero_init_residual=True,
                  **kwargs)
+
+
+def ressl_tiny_imagenet(**kwargs) -> nn.Module:
+    from .cifar_resnet import resnet18
+    return ReSSL(resnet18, dim=128, hidden_dim=512, momentum=0.996, n_classes=200, **kwargs)
 
 
 def ressl_cifar10(**kwargs) -> nn.Module:

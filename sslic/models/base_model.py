@@ -35,3 +35,4 @@ class BaseModel(nn.Module):
         self.encoder = base_encoder(**kwargs)
         self.prev_dim = self.encoder.fc.weight.shape[1]
         self.encoder.fc = nn.Identity()
+
