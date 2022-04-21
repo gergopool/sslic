@@ -26,6 +26,7 @@ parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
 parser.add_argument('--opt', type=str, default=None)
+parser.add_argument('--transform', type=str, default=None)
 parser.add_argument('--save-dir', type=str, default="checkpoints")
 parser.add_argument('--devices', type=str, nargs='+', default=[])
 
@@ -34,7 +35,8 @@ def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
     '''Define data loaders to a specific process.'''
 
     # Create datasets
-    dataset_provider = get_dataset_provider(args.data_root, args.dataset, method_name=args.method)
+    method = args.transform if args.transform else args.method
+    dataset_provider = get_dataset_provider(args.data_root, args.dataset, method_name=method)
     train_dataset = dataset_provider('ssl')
     val_dataset = dataset_provider('test')
 
