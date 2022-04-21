@@ -64,10 +64,11 @@ class Scheduler:
             param_group['lr'] = next_lr
 
     def step(self, iteration=None) -> None:
-        self.iter_count = iteration if iteration else self.iter_count + 1
+        self.iter_count = iteration if iteration else self.iter_count
         if self.iter_count > self.iterations and self.verbose:
             raise ValueError("Your scheduler overstepped the maximum number of iterations")
         self.on_step()
+        self.iter_count += 1
 
 
 class CosineAnnealing(Scheduler):
@@ -112,7 +113,7 @@ class WarmUpCosineAnnealing(CosineAnnealing):
 
     def on_step(self):
         if self.in_warmup:
-            next_lr = self.init_lr * 0.5 * (1. + math.cos(math.pi * self.progress))
+            next_lr = self.init_lr * self.warmup_progress
             self.set_lr(next_lr)
         else:
             super().on_step()

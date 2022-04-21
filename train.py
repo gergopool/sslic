@@ -7,6 +7,7 @@ from random import randint
 import torch.backends.cudnn as cudnn
 
 from sslic.logger import Logger
+from sslic.scheduler import get_scheduler
 from sslic.trainers import SSLTrainer
 from sslic.models import get_ssl_network
 from sslic.data import get_dataset_provider
@@ -132,12 +133,16 @@ def main(rank, world_size, port, args):
 
     # Scheduler
     scheduler_name = args.scheduler if args.scheduler else args.method
+    scheduler = get_scheduler(scheduler_name,
+                              optimizer=optimizer,
+                              epochs=args.epochs,
+                              ipe=len(train_loader),
+                              verbose=rank == 0)
 
     trainer = SSLTrainer(model,
-                         optimizer, (train_loader, val_loader),
+                         scheduler, (train_loader, val_loader),
                          save_params=save_params,
                          evaluator=evaluator,
-                         scheduler_name=scheduler_name,
                          logger=logger)
 
     cudnn.benchmark = True

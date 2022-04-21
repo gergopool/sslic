@@ -1,4 +1,3 @@
-from sched import scheduler
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -10,7 +9,7 @@ from typing import Tuple
 from .. import pkbar
 from ..logger import Logger, EmptyLogger
 from ..utils import AllReduce, after_init_world_size_n_rank
-from ..scheduler import get_scheduler
+from ..scheduler import Scheduler
 
 
 class GeneralTrainer(ABC):
@@ -43,19 +42,18 @@ class GeneralTrainer(ABC):
 
     def __init__(self,
                  model: nn.Module,
-                 optimizer: torch.optim.Optimizer,
+                 scheduler: Scheduler,
                  data_loaders: Tuple[DataLoader, DataLoader],
                  save_params: dict = {"save_dir": None},
                  evaluator: Evaluator = None,
-                 scheduler_name: str = None,
                  logger: Logger = EmptyLogger()):
         self.model = model
-        self.optimizer = optimizer
+        self.optimizer = scheduler.optimizer
         self.train_loader, self.val_loader = data_loaders
         self.save_dir = save_params.pop('save_dir')
         self.save_dict = save_params
         self.evaluator = evaluator
-        self.scheduler_name = scheduler_name
+        self.scheduler = scheduler
         self.scaler = torch.cuda.amp.GradScaler()
         self.world_size, self.rank = after_init_world_size_n_rank()
         if not (self.rank is None or self.rank == 0):
@@ -63,11 +61,6 @@ class GeneralTrainer(ABC):
         else:
             self.logger = logger
         self.start_epoch = 0
-
-        # Scheduler
-        # By setting this to None we force the user to define it properly
-        # once the number of epochs is given
-        self.scheduler = None
 
         # Progress bar with running average metrics
         self.pbar = ProgressBar([self.train_loader], self.rank)
@@ -134,11 +127,6 @@ class GeneralTrainer(ABC):
             Number of warmup epochs, by default 10
         """
 
-        self.scheduler = get_scheduler(self.scheduler_name,
-                                       optimizer=self.optimizer,
-                                       epochs=n_epochs,
-                                       ipe=len(self.train_loader),
-                                       verbose=self.rank == 0)
         self.scheduler.set_epoch(self.start_epoch)
 
         for epoch in range(self.start_epoch, n_epochs):
@@ -209,7 +197,8 @@ class ProgressBar:
                                    epoch=epoch_i,
                                    num_epochs=n_epochs,
                                    width=8,
-                                   always_stateful=False)
+                                   always_stateful=False,
+                                   stateful_metrics=['lr'])
 
     def update(self, value_dict):
         if self.is_active:
