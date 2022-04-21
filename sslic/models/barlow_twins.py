@@ -6,7 +6,12 @@ from ..losses import barlow_twins_loss
 from .base_model import BaseModel
 from torchvision import models
 
-__all__ = ['barlow_twins_imagenet', 'barlow_twins_cifar10', 'barlow_twins_cifar100']
+__all__ = [
+    'barlow_twins_imagenet',
+    'barlow_twins_tiny_imagenet',
+    'barlow_twins_cifar10',
+    'barlow_twins_cifar100'
+]
 
 
 class BarlowTwins(BaseModel):
@@ -44,6 +49,11 @@ class BarlowTwins(BaseModel):
 
 def barlow_twins_imagenet(**kwargs) -> nn.Module:
     return BarlowTwins(models.resnet50, dim=8096, n_classes=1000, zero_init_residual=True, **kwargs)
+
+
+def barlow_twins_tiny_imagenet(**kwargs) -> nn.Module:
+    from .cifar_resnet import resnet18
+    return BarlowTwins(resnet18, dim=512, n_classes=200, **kwargs)
 
 
 def barlow_twins_cifar10(**kwargs) -> nn.Module:

@@ -6,7 +6,7 @@ from typing import Callable
 from ..losses import simclr_loss
 from .base_model import BaseModel
 
-__all__ = ['simclr_imagenet', 'simclr_cifar10', 'simclr_cifar100']
+__all__ = ['simclr_imagenet', 'simclr_tiny_imagenet', 'simclr_cifar10', 'simclr_cifar100']
 
 
 class SimCLR(BaseModel):
@@ -38,6 +38,11 @@ class SimCLR(BaseModel):
 
 def simclr_imagenet(**kwargs) -> nn.Module:
     return SimCLR(models.resnet50, dim=512, n_classes=1000, zero_init_residual=True, **kwargs)
+
+
+def simclr_tiny_imagenet(**kwargs) -> nn.Module:
+    from .cifar_resnet import resnet18
+    return SimCLR(resnet18, dim=128, n_classes=200, **kwargs)
 
 
 def simclr_cifar10(**kwargs) -> nn.Module:
