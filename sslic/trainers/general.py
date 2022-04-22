@@ -157,7 +157,7 @@ class GeneralTrainer(ABC):
             metrics = self.train_step(data_batch)
             self.scheduler.step()
             self.logger.step()
-            for i, lr in enumerate(torch.unique(torch.tensor(self.scheduler.current_lrs))):
+            for i, lr in enumerate(torch.unique(torch.tensor(self.scheduler.current_unfixed_lrs))):
                 metrics[f'lr{i}'] = lr
             self.pbar.update(metrics)
             for k, v in metrics.items():
