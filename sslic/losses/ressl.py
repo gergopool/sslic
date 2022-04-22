@@ -13,7 +13,7 @@ class ReSSLLoss(nn.Module):
 
     def __init__(self,
                  emb_dim=512,
-                 queue_len: int = 65536,
+                 queue_len: int = 131072,
                  tau_s: float = 0.1,
                  tau_t: float = 0.04):
         super().__init__()
