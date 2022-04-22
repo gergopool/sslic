@@ -139,7 +139,8 @@ class GeneralTrainer(ABC):
                 self.train_loader.sampler.set_epoch(epoch)
 
             # Adjust learning rate accordingly to epoch
-            self.logger.add_scalar("stats/learning_rate", self.scheduler.current_lr, force=True)
+            for i, lr in enumerate(self.scheduler.current_lrs):
+                self.logger.add_scalar(f"stats/learning_rate_{i}", lr, force=True)
 
             # Train
             self.train_an_epoch()
@@ -157,7 +158,8 @@ class GeneralTrainer(ABC):
             metrics = self.train_step(data_batch)
             self.scheduler.step()
             self.logger.step()
-            metrics['lr'] = self.scheduler.current_lr
+            for i, lr in enumerate(self.scheduler.current_lrs):
+                metrics[f'lr{i}'] = lr
             self.pbar.update(metrics)
             for k, v in metrics.items():
                 self.logger.add_scalar(f"train/{k}", v)

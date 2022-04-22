@@ -3,6 +3,8 @@ import math
 
 __all__ = ['get_scheduler']
 
+from typing import List
+
 
 def get_scheduler(name, *args, **kwargs):
     if name is None:
@@ -37,9 +39,17 @@ class Scheduler:
         return int(self.epochs * self.ipe)
 
     @property
-    def current_lr(self) -> float:
+    def current_lrs(self) -> List[float]:
         # TODO Lars?
-        return self.optimizer.param_groups[0]['lr']
+        return [pg['lr'] for pg in self.optimizer.param_groups]
+
+    @property
+    def current_scheduled_lr(self):
+        unfixed_lrs = [pg['lr'] for pg in self.optimizer.param_groups if 'fix_lr' not in pg or not pg['fix_lr']]
+        assert len(unfixed_lrs) > 0, "No learning rate to schedule"
+        if len(unfixed_lrs) > 1:
+            assert unfixed_lrs[1:] == unfixed_lrs[:-1], "Unfixed learning rates must be the same"
+        return unfixed_lrs[0]
 
     @property
     def progress(self) -> float:
@@ -61,7 +71,10 @@ class Scheduler:
 
     def set_lr(self, next_lr) -> None:
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = next_lr
+            if 'fix_lr' in param_group and param_group['fix_lr']:
+                pass
+            else:
+                param_group['lr'] = next_lr
 
     def step(self, iteration=None) -> None:
         self.iter_count = iteration if iteration else self.iter_count
@@ -75,14 +88,7 @@ class CosineAnnealing(Scheduler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.init_lr = self.current_lr
-
-    def set_lr(self, next_lr: float) -> None:
-        for param_group in self.optimizer.param_groups:
-            if 'fix_lr' in param_group and param_group['fix_lr']:
-                param_group['lr'] = self.init_lr
-            else:
-                param_group['lr'] = next_lr
+        self.init_lr = self.current_scheduled_lr
 
     def on_step(self):
         next_lr = self.init_lr * 0.5 * (1. + math.cos(math.pi * self.progress))
