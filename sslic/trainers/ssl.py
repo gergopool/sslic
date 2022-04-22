@@ -52,7 +52,7 @@ class SSLTrainer(GeneralTrainer):
         with torch.cuda.amp.autocast(enabled=True):
 
             # Predict
-            y = y.to(device)
+            y = y.to(device)  # TODO: This one is not used
             x = [t.to(device) for t in x]
             representations = self.model(x)
 
@@ -61,9 +61,13 @@ class SSLTrainer(GeneralTrainer):
 
                 # Convert back to fp32
                 representations = [x.float() for x in representations]
-
+                for i, rep in enumerate(representations):
+                    self.logger.log_describe(f"stats/representation_{i}_len", rep.norm(dim=-1))
                 # Calculate loss
                 loss = self.model.ssl_loss(*representations)
+                log_dict = {}
+                if type(loss) is tuple:
+                    loss, log_dict = loss
 
         # Backprop
         self.scaler.scale(loss).backward()
@@ -72,4 +76,4 @@ class SSLTrainer(GeneralTrainer):
         # loss.backward()
         # self.optimizer.step()
 
-        return {"loss": loss.item()}
+        return {**log_dict, "loss": loss.item()}

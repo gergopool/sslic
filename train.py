@@ -6,6 +6,8 @@ from torch.utils.data.distributed import DistributedSampler
 from random import randint
 import torch.backends.cudnn as cudnn
 
+from sslic.logger import Logger
+from sslic.scheduler import get_scheduler
 from sslic.trainers import SSLTrainer
 from sslic.models import get_ssl_network
 from sslic.data import get_dataset_provider
@@ -25,15 +27,18 @@ parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
 parser.add_argument('--opt', type=str, default=None)
-parser.add_argument('--save_dir', type=str, default="checkpoints")
-parser.add_argument('--devices', type=int, nargs='+', default=[])
+parser.add_argument('--transform', type=str, default=None)
+parser.add_argument('--scheduler', type=str, default=None)
+parser.add_argument('--save-dir', type=str, default="checkpoints")
+parser.add_argument('--devices', type=str, nargs='+', default=[])
 
 
 def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
     '''Define data loaders to a specific process.'''
 
     # Create datasets
-    dataset_provider = get_dataset_provider(args.data_root, args.dataset, method_name=args.method)
+    method = args.transform if args.transform else args.method
+    dataset_provider = get_dataset_provider(args.data_root, args.dataset, method_name=method)
     train_dataset = dataset_provider('ssl')
     val_dataset = dataset_provider('test')
 
@@ -85,10 +90,7 @@ def main(rank, world_size, port, args):
 
     # Set device and distributed settings
     if torch.cuda.is_available():
-        if args.devices:
-            device = torch.cuda.device(args.devices[rank])
-        else:
-            device = torch.cuda.device(rank)
+        device = torch.cuda.device(rank)
         torch.cuda.set_device(device)
 
     world_size, rank = utils.init_distributed(port, rank_and_world_size=(rank, world_size))
@@ -111,20 +113,37 @@ def main(rank, world_size, port, args):
     optimizer = get_optimizer(method, model, batch_size=args.batch_size, lr=args.lr)
 
     # Training parameters
-    save_dir = os.path.join(args.save_dir, f"{args.run_name}/{args.method}_{args.dataset}")
+    save_dir = os.path.join(args.save_dir, f"{args.method}_{args.dataset}", args.run_name)
     save_params = {"method": args.method, "dataset": args.dataset, "save_dir": save_dir}
 
-    evaluator = None
+    # Evaluator
     evaluator = Evaluator(model.encoder,
                           args.dataset,
                           args.data_root,
                           n_views=2,
                           batch_size=per_gpu_batch_size)
 
+    # Logger
+    logger = Logger(log_dir=save_dir,
+                    global_step=0,
+                    batch_size=args.batch_size,
+                    world_size=world_size,
+                    log_per_sample=1e4)
+    logger.log_config(vars(args))
+
+    # Scheduler
+    scheduler_name = args.scheduler if args.scheduler else args.method
+    scheduler = get_scheduler(scheduler_name,
+                              optimizer=optimizer,
+                              epochs=args.epochs,
+                              ipe=len(train_loader),
+                              verbose=rank == 0)
+
     trainer = SSLTrainer(model,
-                         optimizer, (train_loader, val_loader),
+                         scheduler, (train_loader, val_loader),
                          save_params=save_params,
-                         evaluator=evaluator)
+                         evaluator=evaluator,
+                         logger=logger)
 
     cudnn.benchmark = True
 
@@ -133,22 +152,26 @@ def main(rank, world_size, port, args):
         trainer.load(args.resume)
 
     # Train
-    trainer.train(args.epochs, ref_lr=optimizer.param_groups[0]['lr'])
+    trainer.train(args.epochs)
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.devices:
-        num_gpus = len(args.devices)
-    else:
-        num_gpus = torch.cuda.device_count()
+        str_devices = ','.join(args.devices)
+        os.environ['CUDA_VISIBLE_DEVICES'] = str_devices
+
+    num_gpus = torch.cuda.device_count()
 
     # Choose a random port so multiple runs won't conflict with
     # a large chance.
     port = randint(0, 9999) + 40000
 
     if num_gpus > 1:
-        mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+        try:
+            mp.spawn(main, nprocs=num_gpus, args=(num_gpus, port, args))
+        except KeyboardInterrupt:
+            print('\nInterrupted. Attempting a graceful shutdown..')
     else:
         main(0, 1, port, args)

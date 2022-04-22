@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from ..utils import AllGather
 
-__all__ = ['ressl_loss', 'ressl_cifar10_loss']
+__all__ = ['ressl_loss', 'ressl_tiny_imagenet_loss', 'ressl_cifar10_loss']
 
 EPS = 1e-6
 
@@ -13,9 +13,9 @@ class ReSSLLoss(nn.Module):
 
     def __init__(self,
                  emb_dim=512,
-                 queue_len: int = 65536,
+                 queue_len: int = 131072,
                  tau_s: float = 0.1,
-                 tau_t: float = 0.05):
+                 tau_t: float = 0.04):
         super().__init__()
         self.emb_dim = emb_dim
         self.queue_len = queue_len
@@ -59,5 +59,9 @@ def ressl_loss(*args, **kwargs):
     return ReSSLLoss(*args, **kwargs)
 
 
+def ressl_tiny_imagenet_loss(*args, **kwargs):
+    return ReSSLLoss(128, *args, queue_len=16384, **kwargs)
+
+
 def ressl_cifar10_loss(*args, **kwargs):
-    return ReSSLLoss(128, *args, queue_len=4096, tau_t=0.04, **kwargs)
+    return ReSSLLoss(128, *args, queue_len=4096, tau_t=0.05, **kwargs)

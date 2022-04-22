@@ -3,12 +3,13 @@ from torch import nn
 from torch.utils.data import DataLoader
 import os
 from abc import ABC
-
+from ssl_eval import Evaluator
 from typing import Tuple
 
 from .. import pkbar
+from ..logger import Logger, EmptyLogger
 from ..utils import AllReduce, after_init_world_size_n_rank
-from ssl_eval import Evaluator
+from ..scheduler import Scheduler
 
 
 class GeneralTrainer(ABC):
@@ -41,18 +42,24 @@ class GeneralTrainer(ABC):
 
     def __init__(self,
                  model: nn.Module,
-                 optimizer: torch.optim.Optimizer,
+                 scheduler: Scheduler,
                  data_loaders: Tuple[DataLoader, DataLoader],
                  save_params: dict = {"save_dir": None},
-                 evaluator: Evaluator = None):
+                 evaluator: Evaluator = None,
+                 logger: Logger = EmptyLogger()):
         self.model = model
-        self.optimizer = optimizer
+        self.optimizer = scheduler.optimizer
         self.train_loader, self.val_loader = data_loaders
         self.save_dir = save_params.pop('save_dir')
         self.save_dict = save_params
         self.evaluator = evaluator
+        self.scheduler = scheduler
         self.scaler = torch.cuda.amp.GradScaler()
         self.world_size, self.rank = after_init_world_size_n_rank()
+        if not (self.rank is None or self.rank == 0):
+            self.logger = EmptyLogger()
+        else:
+            self.logger = logger
         self.start_epoch = 0
 
         # Progress bar with running average metrics
@@ -99,24 +106,14 @@ class GeneralTrainer(ABC):
         torch.save(save_dict, filepath)
 
     def load(self, path):
-        save_dict = torch.load(path)
+        save_dict = torch.load(path, map_location=self.device)
         self.model.load_state_dict(save_dict['state_dict'])
         self.optimizer.load_state_dict(save_dict['optimizer'])
         self.scaler.load_state_dict(save_dict['amp'])
         self.start_epoch = save_dict['epoch']
         torch.distributed.barrier()
 
-    def adjust_learning_rate(self, optimizer, init_lr, epoch, epochs):
-        """Decay the learning rate based on schedule"""
-        import math
-        cur_lr = init_lr * 0.5 * (1. + math.cos(math.pi * epoch / epochs))
-        for param_group in optimizer.param_groups:
-            if 'fix_lr' in param_group and param_group['fix_lr']:
-                param_group['lr'] = init_lr
-            else:
-                param_group['lr'] = cur_lr
-
-    def train(self, n_epochs: int, ref_lr: float = 0.1, n_warmup_epochs: int = 10):
+    def train(self, n_epochs: int):
         """train
         Train n epochs.
 
@@ -130,24 +127,25 @@ class GeneralTrainer(ABC):
             Number of warmup epochs, by default 10
         """
 
-        n_warmup_iter = len(self.train_loader) * n_warmup_epochs
+        self.scheduler.set_epoch(self.start_epoch)
 
         for epoch in range(self.start_epoch, n_epochs):
             # Reset progress bar to the start of the line
             self.pbar.reset(epoch, n_epochs)
+            self.logger.add_scalar("stats/epoch", epoch, force=True)
 
             # Set epoch in sampler
             if self.world_size > 1:
                 self.train_loader.sampler.set_epoch(epoch)
 
-            # Adjust learning rate accordingly to epoch
-            self.adjust_learning_rate(self.optimizer, ref_lr, epoch, n_epochs)
+            for i, lr in enumerate(torch.unique(torch.tensor(self.scheduler.current_lrs))):
+                self.logger.add_scalar(f"stats/learning_rate_{i}", lr, force=True)
 
             # Train
             self.train_an_epoch()
 
             # Validate
-            if (epoch + 1) % 10 == 0 or epoch == 0:
+            if (epoch + 1) % 5 == 0 or epoch == 0:
                 self.run_validation()
 
             # Save network
@@ -157,13 +155,20 @@ class GeneralTrainer(ABC):
     def train_an_epoch(self):
         for data_batch in self.train_loader:
             metrics = self.train_step(data_batch)
+            self.scheduler.step()
+            self.logger.step()
+            for i, lr in enumerate(torch.unique(torch.tensor(self.scheduler.current_unfixed_lrs))):
+                metrics[f'lr{i}'] = lr
             self.pbar.update(metrics)
+            for k, v in metrics.items():
+                self.logger.add_scalar(f"train/{k}", v)
 
     def run_validation(self):
         self.evaluator.generate_embeddings()
         batch_size = 4096 // self.world_size
         init_lr = 1.6
-        self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
+        accuracy = self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
+        self.logger.add_scalar("test/lineval_acc", accuracy, force=True)
 
     def train_step(self, batch: torch.Tensor):
         raise NotImplementedError
@@ -193,7 +198,8 @@ class ProgressBar:
                                    epoch=epoch_i,
                                    num_epochs=n_epochs,
                                    width=8,
-                                   always_stateful=False)
+                                   always_stateful=False,
+                                   stateful_metrics=['lr'])
 
     def update(self, value_dict):
         if self.is_active:
