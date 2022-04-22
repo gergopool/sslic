@@ -68,9 +68,7 @@ class Scheduler:
 
     def set_lr(self, next_lr) -> None:
         for param_group in self.optimizer.param_groups:
-            if 'fix_lr' in param_group and param_group['fix_lr']:
-                pass
-            else:
+            if not ('fix_lr' in param_group and param_group['fix_lr']):
                 param_group['lr'] = next_lr
 
     def step(self, iteration=None) -> None:
