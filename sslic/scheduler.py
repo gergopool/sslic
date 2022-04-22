@@ -40,7 +40,6 @@ class Scheduler:
 
     @property
     def current_lrs(self) -> List[float]:
-        # TODO Lars?
         return [pg['lr'] for pg in self.optimizer.param_groups]
 
     @property
