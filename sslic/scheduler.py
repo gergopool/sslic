@@ -44,12 +44,9 @@ class Scheduler:
         return [pg['lr'] for pg in self.optimizer.param_groups]
 
     @property
-    def current_scheduled_lr(self):
+    def current_unfixed_lrs(self):
         unfixed_lrs = [pg['lr'] for pg in self.optimizer.param_groups if 'fix_lr' not in pg or not pg['fix_lr']]
-        assert len(unfixed_lrs) > 0, "No learning rate to schedule"
-        if len(unfixed_lrs) > 1:
-            assert unfixed_lrs[1:] == unfixed_lrs[:-1], "Unfixed learning rates must be the same"
-        return unfixed_lrs[0]
+        return unfixed_lrs
 
     @property
     def progress(self) -> float:
@@ -88,7 +85,11 @@ class CosineAnnealing(Scheduler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.init_lr = self.current_scheduled_lr
+        unfixed_lrs = self.current_unfixed_lrs
+        assert len(unfixed_lrs) > 0, "No learning rate to schedule"
+        if len(unfixed_lrs) > 1:
+            assert unfixed_lrs[1:] == unfixed_lrs[:-1], "Unfixed learning rates must be the same"
+        self.init_lr = unfixed_lrs[0]
 
     def on_step(self):
         next_lr = self.init_lr * 0.5 * (1. + math.cos(math.pi * self.progress))
