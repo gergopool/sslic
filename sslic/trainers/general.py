@@ -138,8 +138,7 @@ class GeneralTrainer(ABC):
             if self.world_size > 1:
                 self.train_loader.sampler.set_epoch(epoch)
 
-            # Adjust learning rate accordingly to epoch
-            for i, lr in enumerate(self.scheduler.current_lrs):
+            for i, lr in enumerate(torch.unique(torch.tensor(self.scheduler.current_lrs))):
                 self.logger.add_scalar(f"stats/learning_rate_{i}", lr, force=True)
 
             # Train
@@ -158,7 +157,7 @@ class GeneralTrainer(ABC):
             metrics = self.train_step(data_batch)
             self.scheduler.step()
             self.logger.step()
-            for i, lr in enumerate(self.scheduler.current_lrs):
+            for i, lr in enumerate(torch.unique(torch.tensor(self.scheduler.current_lrs))):
                 metrics[f'lr{i}'] = lr
             self.pbar.update(metrics)
             for k, v in metrics.items():
