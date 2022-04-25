@@ -4,6 +4,9 @@ from .barlow_twins import *
 from .simclr import *
 from .simsiam import *
 from .ressl import *
+from .byol import *
+from .mocov2 import *
+from .twist import *
 
 n_classes = {"imagenet": 1000, "cifar10": 10, "cifar100": 100}
 

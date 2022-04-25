@@ -5,6 +5,9 @@ from .simsiam import *
 from .arcloss import *
 from .twist import *
 from .ressl import *
+from .byol import *
+from .mocov2 import *
+from .vicreg import *
 from .experimental import *
 
 

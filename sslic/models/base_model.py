@@ -35,3 +35,7 @@ class BaseModel(nn.Module):
         self.encoder = base_encoder(**kwargs)
         self.prev_dim = self.encoder.fc.weight.shape[1]
         self.encoder.fc = nn.Identity()
+
+    def step(self, progress: float):
+        # Some models might require a continuous change
+        assert progress >= 0. and progress <= 1.

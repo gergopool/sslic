@@ -1,67 +1,50 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
 
-from ..utils import AllGather
+from sslic.losses.mocov2 import Mocov2Loss
 
 __all__ = ['ressl_loss', 'ressl_tiny_imagenet_loss', 'ressl_cifar10_loss']
 
 EPS = 1e-6
 
 
-class ReSSLLoss(nn.Module):
+class ReSSLLoss(Mocov2Loss):
 
-    def __init__(self,
-                 emb_dim=512,
-                 queue_len: int = 131072,
-                 tau_s: float = 0.1,
-                 tau_t: float = 0.04):
-        super().__init__()
-        self.emb_dim = emb_dim
-        self.queue_len = queue_len
-        self.tau_s = tau_s
+    def __init__(self, *args, tau_s=0.1, tau_t=0.04, **kwargs):
+        super().__init__(*args, tau=tau_s, **kwargs)
+        self.tau_s = self.tau  # for convenient naming
         self.tau_t = tau_t
-
-        self.register_buffer("queue", torch.randn(self.queue_len, self.emb_dim))
-        self.queue = F.normalize(self.queue, dim=1)
-        self.queue.requires_grad = False
-        self.queue_idx = 0
-        self.softmax = nn.Softmax(dim=1)
 
     def cross_entropy(self, x, y):
         return torch.sum(-y * torch.log(x + EPS), dim=1).mean()
 
-    @torch.no_grad()
-    def add_to_queue(self, z):
-        z = AllGather.apply(z)
-        assert self.queue_len % len(z) == 0
-        self.queue[self.queue_idx:self.queue_idx + len(z)] = z.detach()
-        self.queue_idx = (self.queue_idx + len(z)) % self.queue_len
-
     def forward(self, z_t: torch.Tensor, z_s: torch.Tensor) -> torch.Tensor:
 
+        # Normalize the embedings
         z_t = F.normalize(z_t, dim=1)
         z_s = F.normalize(z_s, dim=1)
 
+        # Queue is always normalized, no need for normalization
         queue = self.queue.clone().detach()
 
-        p_s = self.softmax(z_s @ queue.T / self.tau_s)
-        p_t = self.softmax(z_t @ queue.T / self.tau_t)
-
+        # Calculate scaled similarities
+        p_s = F.softmax(z_s @ queue.T / self.tau_s, dim=1)
+        p_t = F.softmax(z_t @ queue.T / self.tau_t, dim=1)
         loss = self.cross_entropy(p_s, p_t)
 
+        # Add the teacher embeddings to FIFO
         self.add_to_queue(z_t)
 
         return loss
 
 
-def ressl_loss(*args, **kwargs):
-    return ReSSLLoss(*args, **kwargs)
+def ressl_loss():
+    return ReSSLLoss(emb_dim=512, queue_len=131072)
 
 
-def ressl_tiny_imagenet_loss(*args, **kwargs):
-    return ReSSLLoss(128, *args, queue_len=16384, **kwargs)
+def ressl_tiny_imagenet_loss():
+    return ReSSLLoss(emb_dim=128, queue_len=16384)
 
 
-def ressl_cifar10_loss(*args, **kwargs):
-    return ReSSLLoss(128, *args, queue_len=4096, tau_t=0.05, **kwargs)
+def ressl_cifar10_loss():
+    return ReSSLLoss(emb_dim=128, queue_len=16384, tau_t=0.05)

@@ -1,6 +1,8 @@
 from abc import ABC
 from typing import Callable
 
+__all__ = ['']
+
 
 class GeneralTransform(ABC):
 

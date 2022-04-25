@@ -15,10 +15,9 @@ class TwistLoss(nn.Module):
         self.lam1 = lam1
         self.lam2 = lam2
 
-    def forward(self, p1: torch.Tensor, p2: torch.Tensor, z1: torch.Tensor,
-                z2: torch.Tensor) -> torch.Tensor:
-        loss1 = self.loss(p1, z2)
-        loss2 = self.loss(p2, z1)
+    def forward(self, p1: torch.Tensor, p2: torch.Tensor) -> torch.Tensor:
+        loss1 = self.loss(p1, p2)
+        loss2 = self.loss(p2, p1)
         return (loss1 + loss2) * 0.5
 
     def loss(self, p: torch.Tensor, z: torch.Tensor) -> torch.Tensor:

@@ -83,6 +83,10 @@ class LARC(object):
                 weight_decay = group['weight_decay'] if 'weight_decay' in group else 0
                 weight_decays.append(weight_decay)
                 group['weight_decay'] = 0
+
+                if 'lars_exclude' in group and group['lars_exclude']:
+                    continue
+
                 for p in group['params']:
                     if p.grad is None:
                         continue

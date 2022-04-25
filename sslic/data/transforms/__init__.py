@@ -1,16 +1,18 @@
-from .general import GeneralTransform
-from .moco import MocoTransform
-from .barlow_twins import BarlowTwinsTransform
-from .ressl import ReSSLTransform
+from .mocov2 import *
+from .barlow_twins import *
+from .ressl import *
+from .simsiam import *
+from .byol import *
+from .mocov2 import *
+from .twist import *
+from .vicreg import *
 
 
-def get_transform_generator(method_name: str) -> GeneralTransform:
+def get_transform(method_name: str, dataset_name: str, split: str):
 
-    if method_name in ['simsiam', 'simclr']:
-        return MocoTransform()
-    elif method_name == 'barlow_twins':
-        return BarlowTwinsTransform()
-    elif method_name == 'ressl':
-        return ReSSLTransform()
-    else:
-        raise NameError(f"Unknown method name: {method_name}")
+    # Transform generator class
+    transform_gen = method_name + '_transform'
+    if transform_gen not in globals():
+        raise NameError(f"Transformation for {method_name} is not unknown.")
+
+    return globals()[transform_gen]().make_by_dataset(dataset_name, split)
