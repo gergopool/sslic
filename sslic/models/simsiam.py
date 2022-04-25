@@ -37,20 +37,16 @@ class SimSiam(BaseModel):
                 nn.BatchNorm1d(self.prev_dim),
                 nn.ReLU(inplace=True)
             ])
-        projector_layers.extend([nn.Linear(self.prev_dim, self.dim, bias=True)])
+        projector_layers.extend([
+            nn.Linear(self.prev_dim, self.dim, bias=False), nn.BatchNorm1d(self.dim, affine=False)
+        ])
         self.projector = nn.Sequential(*projector_layers)
 
-        self.standardize = nn.BatchNorm1d(self.dim, affine=False)
-
         # Predictor
-        self.pred_dim = self.dim
-        self.predictor = nn.Sequential(
-            #    nn.Linear(self.dim, self.pred_dim, bias=False),
-            #    nn.BatchNorm1d(self.pred_dim),
-            nn.ReLU(inplace=True),
-            nn.Linear(self.pred_dim, self.dim))
-        # for param in self.predictor.parameters():
-        #     param.requires_grad = False
+        self.predictor = nn.Sequential(nn.Linear(self.dim, self.pred_dim, bias=False),
+                                       nn.BatchNorm1d(self.pred_dim),
+                                       nn.ReLU(inplace=True),
+                                       nn.Linear(self.pred_dim, self.dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x1, x2 = x
@@ -64,7 +60,7 @@ class SimSiam(BaseModel):
         p1 = self.predictor(z1)
         p2 = self.predictor(z2)
 
-        return p1, p2, self.standardize(z1), self.standardize(z2)
+        return p1, p2, z1, z2
 
 
 def simsiam_imagenet(**kwargs) -> nn.Module:
