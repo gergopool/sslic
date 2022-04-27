@@ -5,9 +5,7 @@ from torch import nn
 from ..utils import AllGather
 from .general import Loss
 
-__all__ = [
-    'barlow_twins_loss',
-]
+__all__ = ['barlow_twins_loss']
 
 
 class BarlowTwinsLoss(Loss):

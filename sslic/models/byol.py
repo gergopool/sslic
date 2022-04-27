@@ -72,11 +72,11 @@ class BYOL(MomentumModel):
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> MomentumModel:
-        return super().tiny_imagenet(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
+        return super().cifar10(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> MomentumModel:
-        return super().tiny_imagenet(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
+        return super().cifar100(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
 
 
 def byol_model() -> BYOL:

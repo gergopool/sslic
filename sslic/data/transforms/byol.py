@@ -12,7 +12,6 @@ __all__ = ['byol_transform']
 class BYOLTransform(MocoTransform):
 
     def large(self, split: str = 'train', norm: str = 'imagenet') -> Callable:
-        # Code from https://github.com/facebookresearch/barlowtwins/blob/main/main.py
         if split == 'ssl':
             aug_1 = transforms.Compose([
                 transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),

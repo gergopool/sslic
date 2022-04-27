@@ -20,7 +20,7 @@ class SimSiam(BaseModel):
     default_loss = SimSiamLoss
 
     def __init__(self, *args, pred_dim: int = 512, mlp_len=3, **kwargs):
-        super(SimSiam, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.pred_dim = pred_dim
 
         # Projector
@@ -66,11 +66,11 @@ class SimSiam(BaseModel):
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
+        return super().cifar10(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
+        return super().cifar100(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
 
 
 def simsiam_model() -> SimSiam:

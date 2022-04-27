@@ -18,11 +18,11 @@ class ReSSL(MomentumModel):
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> MomentumModel:
-        return super().tiny_imagenet(*args, dim=128, hidden_dim=128, momentum=0.99, **kwargs)
+        return super().cifar10(*args, dim=128, hidden_dim=128, momentum=0.99, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> MomentumModel:
-        return super().tiny_imagenet(*args, dim=128, hidden_dim=128, momentum=0.99, **kwargs)
+        return super().cifar100(*args, dim=128, hidden_dim=128, momentum=0.99, **kwargs)
 
 
 def ressl_model() -> ReSSL:

@@ -51,11 +51,11 @@ class BarlowTwins(BaseModel):
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=512, **kwargs)
+        return super().cifar10(*args, dim=512, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=512, **kwargs)
+        return super().cifar100(*args, dim=512, **kwargs)
 
 
 def barlow_twins_model() -> BarlowTwins:

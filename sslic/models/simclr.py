@@ -45,11 +45,11 @@ class SimCLR(BaseModel):
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=128, **kwargs)
+        return super().cifar10(*args, dim=128, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=128, **kwargs)
+        return super().cifar100(*args, dim=128, **kwargs)
 
 
 def simclr_model() -> SimCLR:

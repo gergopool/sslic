@@ -21,7 +21,7 @@ class Twist(BaseModel):
     default_loss = TwistLoss
 
     def __init__(self, *args, hidden_dim: int = 4096, mlp_len=3, **kwargs):
-        super(Twist, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.hidden_dim = hidden_dim
 
         # Projector
@@ -60,11 +60,11 @@ class Twist(BaseModel):
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=512, mlp_len=2, hidden_dim=512, **kwargs)
+        return super().cifar10(*args, dim=512, mlp_len=2, hidden_dim=512, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=512, mlp_len=2, hidden_dim=512, **kwargs)
+        return super().cifar100(*args, dim=512, mlp_len=2, hidden_dim=512, **kwargs)
 
 
 def twist_model() -> Twist:

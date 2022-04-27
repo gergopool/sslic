@@ -25,11 +25,11 @@ class ReSSLLoss(Mocov2Loss):
         return cls(*args, queue_len=queue_len, **kwargs)
 
     @classmethod
-    def cifar10(cls, *args, queue_len=16384, **kwargs):
+    def cifar10(cls, *args, queue_len=4096, **kwargs):
         return cls(*args, queue_len=queue_len, **kwargs)
 
     @classmethod
-    def cifar100(cls, *args, queue_len=16384, **kwargs):
+    def cifar100(cls, *args, queue_len=4096, **kwargs):
         return cls(*args, queue_len=queue_len, **kwargs)
 
     def cross_entropy(self, x, y):
