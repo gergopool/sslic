@@ -11,8 +11,8 @@ EPS = 1e-5
 
 class TwistLoss(Loss):
 
-    def __init__(self, lam1: float = 1., lam2: float = 1.):
-        super(TwistLoss, self).__init__()
+    def __init__(self, *args, lam1: float = 1., lam2: float = 1., **kwargs):
+        super().__init__(*args, **kwargs)
         self.lam1 = lam1
         self.lam2 = lam2
 

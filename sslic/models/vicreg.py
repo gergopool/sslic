@@ -8,6 +8,8 @@ __all__ = ['vicreg_model']
 
 
 class VICReg(BaseModel):
+
+    default_loss = VICRegLoss
     """
     Build a vicreg model.
     Credits: https://github.com/facebookresearch/vicreg/blob/main/main_vicreg.py
@@ -29,6 +31,7 @@ class VICReg(BaseModel):
                 nn.ReLU(inplace=True),
                 nn.Linear(self.dim, self.dim, bias=False)
             ])
+        self.projector = nn.Sequential(*projector_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x1, x2 = x
@@ -61,5 +64,5 @@ class VICReg(BaseModel):
         return super().cifar100(*args, dim=1024, mlp_len=2, **kwargs)
 
 
-def vicreg() -> VICReg:
+def vicreg_model() -> VICReg:
     return VICReg

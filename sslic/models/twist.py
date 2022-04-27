@@ -26,15 +26,18 @@ class Twist(BaseModel):
 
         # Projector
         projector_layers = []
-        for _ in range(mlp_len - 1):
+        for i in range(mlp_len - 1):
+            start_dim = self.prev_dim if i == 0 else self.hidden_dim
             projector_layers.extend([
-                nn.Linear(self.prev_dim, self.prev_dim, bias=False),
-                nn.BatchNorm1d(self.prev_dim),
-                nn.ReLU(inplace=True)
+                nn.Linear(start_dim, self.hidden_dim, bias=False),
+                nn.BatchNorm1d(self.hidden_dim),
+                nn.ReLU(inplace=True),
             ])
         projector_layers.extend([
-            nn.Linear(self.prev_dim, self.dim, bias=False), nn.BatchNorm1d(self.dim, affine=False)
+            nn.Linear(self.hidden_dim, self.dim, bias=False),
+            nn.BatchNorm1d(self.dim, affine=False)
         ])
+        self.projector = nn.Sequential(*projector_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x1, x2 = x
@@ -53,15 +56,15 @@ class Twist(BaseModel):
 
     @classmethod
     def tiny_imagenet(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=512, mlp_len=2, pred_dim=512, **kwargs)
+        return super().tiny_imagenet(*args, dim=512, mlp_len=2, hidden_dim=512, **kwargs)
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=512, mlp_len=2, pred_dim=512, **kwargs)
+        return super().tiny_imagenet(*args, dim=512, mlp_len=2, hidden_dim=512, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=512, mlp_len=2, pred_dim=512, **kwargs)
+        return super().tiny_imagenet(*args, dim=512, mlp_len=2, hidden_dim=512, **kwargs)
 
 
 def twist_model() -> Twist:

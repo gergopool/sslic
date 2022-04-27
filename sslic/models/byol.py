@@ -29,14 +29,15 @@ class BYOL(MomentumModel):
 
     def _create_projector(self):
         # Add batchnorm to projection
-        return nn.Sequential(nn.Linear(self.prev_dim, self.hidden_dim),
+        return nn.Sequential(nn.Linear(self.prev_dim, self.hidden_dim, bias=False),
                              nn.BatchNorm1d(self.hidden_dim),
                              nn.ReLU(),
                              nn.Linear(self.hidden_dim, self.dim))
 
     def step(self, progress: float):
+        # Cosine schedule on momentum
         scale = 0.5 * (1. + math.cos(math.pi * progress))
-        self.momentum = scale + self.base_momentum * (1 - scale)
+        self.momentum = scale * self.base_momentum + (1 - scale)
 
     def _student_forward(self, x):
         return self.predictor(self.student_net(x))
@@ -45,6 +46,21 @@ class BYOL(MomentumModel):
     def _teacher_forward(self, x):
         # No batch shuffle needed
         return self.teacher_net(x)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x1, x2 = x
+
+        with torch.no_grad():
+            self._update_teacher()
+
+        teacher_z1 = self._teacher_forward(x1)
+        teacher_z2 = self._teacher_forward(x2)
+
+        # Student side
+        student_z1 = self._student_forward(x1)
+        student_z2 = self._student_forward(x2)
+
+        return student_z1, student_z2, teacher_z1, teacher_z2
 
     @classmethod
     def imagenet(cls, *args, **kwargs) -> MomentumModel:

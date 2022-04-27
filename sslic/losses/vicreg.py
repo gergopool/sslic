@@ -16,14 +16,19 @@ class VICRegLoss(Loss):
     Credits: https://github.com/facebookresearch/vicreg/blob/main/main_vicreg.py
     """
 
-    def __init__(self, mse_scale: float = 25., std_scale: float = 25., cov_scale: float = 1.):
-        super().__init__()
+    def __init__(self,
+                 *args,
+                 mse_scale: float = 25.,
+                 std_scale: float = 25.,
+                 cov_scale: float = 1.,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
         self.mse_scale = mse_scale
         self.std_scale = std_scale
         self.cov_scale = cov_scale
 
     def _std_loss(self, x):
-        return F.relu(1 - torch.std(x)).mean()
+        return F.relu(1 - torch.std(x, dim=0)).mean()
 
     def _cov_loss(self, x):
         bs, dim = x.shape
@@ -31,7 +36,7 @@ class VICRegLoss(Loss):
         return cov_m.fill_diagonal_(0).pow_(2).sum() / dim
 
     def gather_and_norm(self, x):
-        x = torch.cat(AllGather.apply(x))
+        x = AllGather.apply(x)
         return x - x.mean(dim=0)
 
     def forward(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
