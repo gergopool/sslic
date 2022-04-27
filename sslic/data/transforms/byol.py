@@ -14,7 +14,7 @@ class BYOLTransform(MocoTransform):
     def large(self, split: str = 'train', norm: str = 'imagenet') -> Callable:
         # Code from https://github.com/facebookresearch/barlowtwins/blob/main/main.py
         if split == 'ssl':
-            aug_t = transforms.Compose([
+            aug_1 = transforms.Compose([
                 transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply(
@@ -26,7 +26,7 @@ class BYOLTransform(MocoTransform):
                 transforms.ToTensor(),
                 normalize(norm)
             ]),
-            aug_s = transforms.Compose([
+            aug_2 = transforms.Compose([
                 transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply(
@@ -38,10 +38,10 @@ class BYOLTransform(MocoTransform):
                 transforms.ToTensor(),
                 normalize(norm)
             ]),
-            return MultiCropTransform([aug_t, aug_s])
+            return MultiCropTransform([aug_1, aug_2])
         else:
             return super().large(split, norm)
 
 
-def byol_transform():
-    return BYOLTransform()
+def byol_transform(*args, **kwargs):
+    return BYOLTransform(*args, **kwargs)

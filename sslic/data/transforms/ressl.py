@@ -55,5 +55,5 @@ class ReSSLTransform(MocoTransform):
         ])
 
 
-def ressl_transform():
-    return ReSSLTransform()
+def ressl_transform(*args, **kwargs):
+    return ReSSLTransform(*args, **kwargs)

@@ -1,3 +1,4 @@
+from .general import GeneralTransform
 from .mocov2 import *
 from .barlow_twins import *
 from .ressl import *
@@ -8,7 +9,7 @@ from .twist import *
 from .vicreg import *
 
 
-def get_transform(method_name: str, dataset_name: str, split: str):
+def get_transform(method_name: str, dataset_name: str, split: str) -> GeneralTransform:
 
     # Transform generator class
     transform_gen = method_name + '_transform'
