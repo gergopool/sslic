@@ -91,11 +91,14 @@ class BaseModel(nn.Module):
         # Current string form
         string_form = super().__repr__()
 
+        if len(string_form) < 6:
+            return string_form
+
         # Stack for counting parenthesis
         stack = 0
 
         # Output stirng
-        new_string = ""
+        new_string = string_form[:6]
 
         for i in range(6, len(string_form)):
             c = string_form[i]
