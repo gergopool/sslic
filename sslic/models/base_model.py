@@ -88,35 +88,26 @@ class BaseModel(nn.Module):
         the relevant modules in the standard output.
         '''
 
-        # We treat the extra repr like the sub-module, one item per line
-        extra_lines = []
-        extra_repr = self.extra_repr()
-        # empty string will be split into list ['']
-        if extra_repr:
-            extra_lines = extra_repr.split('\n')
-        child_lines = []
-        for key, module in self._modules.items():
+        # Current string form
+        string_form = super().__repr__()
 
-            # MODOFIED ORIGINAL PYTORCH CODE HERE
-            if "encoder" in key.lower():
-                # squeezed backend print
-                backend = ['ResNet50', 'ResNet18'][module.conv1.kernel_size[0] == 3]
-                mod_str = f"({backend} backend)"
+        # Stack for counting parenthesis
+        stack = 0
+
+        # Output stirng
+        new_string = ""
+
+        for i in range(6, len(string_form)):
+            c = string_form[i]
+            if string_form[i - 6:i].lower() == 'resnet' or stack != 0:
+                # Resnet found, wait until parenthesis are closed
+                stack += int(c == '(') - int(c == ')')
             else:
-                # original behaviour
-                mod_str = repr(module)
+                # Add character
+                new_string += c
 
-            mod_str = _addindent(mod_str, 2)
-            child_lines.append('(' + key + '): ' + mod_str)
-        lines = extra_lines + child_lines
+        # Add which backend is currently used exactly
+        backend_name = ['ResNet50()', 'ResNet18()'][self.encoder.conv1.kernel_size[0] == 3]
+        new_string = new_string.replace('ResNet', backend_name)
 
-        main_str = self._get_name() + '('
-        if lines:
-            # simple one-liner info, which most builtin Modules will use
-            if len(extra_lines) == 1 and not child_lines:
-                main_str += extra_lines[0]
-            else:
-                main_str += '\n  ' + '\n  '.join(lines) + '\n'
-
-        main_str += ')'
-        return main_str
+        return new_string

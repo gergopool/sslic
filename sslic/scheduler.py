@@ -79,6 +79,10 @@ class Scheduler:
         self.on_step()
         self.iter_count += 1
 
+    def __repr__(self):
+        return f"Scheduler: {type(self).__name__} with {type(self.optimizer).__name__}" + \
+               f"(lr={self.current_lrs[0]:2.4f})"
+
 
 class CosineAnnealing(Scheduler):
 
@@ -93,6 +97,10 @@ class CosineAnnealing(Scheduler):
     def on_step(self):
         next_lr = self.init_lr * 0.5 * (1. + math.cos(math.pi * self.progress))
         self.set_lr(next_lr)
+
+    def __repr__(self):
+        return f"Scheduler: {type(self).__name__} with {type(self.optimizer).__name__}" + \
+               f"(init_lr={self.init_lr:2.4f}"
 
 
 class WarmUpCosineAnnealing(CosineAnnealing):
@@ -124,6 +132,10 @@ class WarmUpCosineAnnealing(CosineAnnealing):
         else:
             next_lr = self.init_lr * 0.5 * (1. + math.cos(math.pi * self.cos_progress))
             self.set_lr(next_lr)
+
+    def __repr__(self):
+        return f"Scheduler: {type(self).__name__} with {type(self.optimizer).__name__}" + \
+               f"(max_lr={self.init_lr:2.4f}, warmup={self.warmup_epochs:2d})"
 
 
 def cosine(*args, **kwargs):

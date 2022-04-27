@@ -60,6 +60,7 @@ class GeneralTrainer(ABC):
             self.logger = EmptyLogger()
         else:
             self.logger = logger
+
         self.start_epoch = 0
 
         # Progress bar with running average metrics

@@ -108,8 +108,6 @@ def main(rank, world_size, port, args):
 
     # Model
     model = get_model(world_size, args)
-    if rank == 0:
-        print(model)
 
     method = args.opt if args.opt else args.method
     optimizer = get_optimizer(method, model, batch_size=args.batch_size, lr=args.lr)
@@ -140,6 +138,10 @@ def main(rank, world_size, port, args):
                               epochs=args.epochs,
                               ipe=len(train_loader),
                               verbose=rank == 0)
+
+    if rank == 0:
+        print(model)
+        print(scheduler)
 
     trainer = SSLTrainer(model,
                          scheduler, (train_loader, val_loader),

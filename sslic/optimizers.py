@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from sslic.larc import LARC
+from sslic.lars import LARS
 
 __all__ = ['get_optimizer']
 
@@ -78,7 +78,7 @@ def _byol(model: nn.Module, lr: float, weight_decay: float = 1.5e-6):
             param_dict = {'params': param}
         optim_params.append(param_dict)
     sgd = torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
-    return LARC(sgd, trust_coefficient=0.001, clip=False)
+    return LARS(sgd)
 
 
 def _ressl(*args, **kwargs):
@@ -88,7 +88,7 @@ def _ressl(*args, **kwargs):
 def _simclr(model: nn.Module, lr: float, weight_decay: float = 1e-6):
     optim_params = [{"params": model.parameters(), 'fix_lr': False}]
     sgd = torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
-    return LARC(sgd, trust_coefficient=0.001, clip=False)
+    return LARS(sgd)
 
 
 def _mocov2(model: nn.Module, lr: float, weight_decay: float = 1e-4):
