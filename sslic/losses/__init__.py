@@ -26,4 +26,4 @@ def get_loss(method_name: str) -> nn.Module:
     method_name += "_loss"
     if method_name not in globals():
         raise NameError(f"Self-supervised loss {method_name} is unknown.")
-    return globals()[method_name]
+    return globals()[method_name]()

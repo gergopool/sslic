@@ -77,7 +77,7 @@ def get_model(world_size, args):
     # Define model
     kwargs = {}
     if args.loss:
-        kwargs['ssl_loss'] = get_loss(args.loss, args.dataset_name)
+        kwargs['ssl_loss'] = get_loss(args.loss)
     model = get_ssl_network(args.method, args.dataset, **kwargs).cuda()
 
     # Create distributed version if needed
