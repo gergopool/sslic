@@ -14,13 +14,8 @@ class MomentumModel(BaseModel):
     Credits: https://github.com/facebookresearch/moco/blob/main/moco/builder.py
     """
 
-    def __init__(self,
-                 base_encoder: nn.Module,
-                 hidden_dim: int = 4096,
-                 momentum=0.999,
-                 ssl_loss: Callable = ressl_loss(),
-                 **kwargs):
-        super(MomentumModel, self).__init__(base_encoder, ssl_loss=ssl_loss, **kwargs)
+    def __init__(self, *args, hidden_dim: int = 4096, momentum=0.999, **kwargs):
+        super(MomentumModel, self).__init__(*args, **kwargs)
         self.hidden_dim = hidden_dim
         self.momentum = momentum
         self.world_size, self.rank = after_init_world_size_n_rank()

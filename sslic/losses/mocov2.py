@@ -2,18 +2,18 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from .general import Loss
 from ..utils import AllGather
 
-__all__ = ['mocov2_loss', 'mocov2_tiny_imagenet_loss', 'mocov2_cifar10_loss']
+__all__ = ['mocov2_loss']
 
 EPS = 1e-6
 
 
-class Mocov2Loss(nn.Module):
+class Mocov2Loss(Loss):
 
-    def __init__(self, emb_dim=128, queue_len: int = 65536, tau: float = 0.07):
-        super().__init__()
-        self.emb_dim = emb_dim
+    def __init__(self, *args, queue_len: int = 65536, tau: float = 0.2, **kwargs):
+        super().__init__(*args, **kwargs)
         self.queue_len = queue_len
         self.tau = tau
 
@@ -22,6 +22,22 @@ class Mocov2Loss(nn.Module):
         self.queue.requires_grad = False
         self.queue_idx = 0
         self.criterion = nn.CrossEntropyLoss()
+
+    @classmethod
+    def imagenet(cls, *args, queue_len=65536, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
+
+    @classmethod
+    def tiny_imagenet(cls, *args, queue_len=8192, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
+
+    @classmethod
+    def cifar10(cls, *args, queue_len=8192, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
+
+    @classmethod
+    def cifar100(cls, *args, queue_len=8192, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
 
     @torch.no_grad()
     def add_to_queue(self, z):
@@ -41,7 +57,7 @@ class Mocov2Loss(nn.Module):
         neg_samples = z_s @ queue.T
 
         samples = torch.cat((pos_samples, neg_samples), dim=1) / self.tau
-        labels = torch.zeros(len(samples)).to(z_s.device)
+        labels = torch.zeros(len(samples), dtype=torch.long, device=z_s.device)
 
         loss = self.criterion(samples, labels)
 
@@ -50,15 +66,5 @@ class Mocov2Loss(nn.Module):
         return loss
 
 
-def mocov2_loss(*args, **kwargs):
-    return Mocov2Loss(*args, **kwargs)
-
-
-def mocov2_tiny_imagenet_loss(*args, **kwargs):
-    # Note: values created from ressl paper, it was not included in moco
-    return Mocov2Loss(*args, queue_len=16384, **kwargs)
-
-
-def mocov2_cifar10_loss(*args, **kwargs):
-    # Note: values created from ressl paper, it was not included in moco
-    return Mocov2Loss(*args, queue_len=4096, **kwargs)
+def mocov2_loss():
+    return Mocov2Loss

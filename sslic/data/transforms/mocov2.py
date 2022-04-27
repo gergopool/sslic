@@ -10,7 +10,7 @@ __all__ = ['mocov2_transform']
 
 class MocoTransform(GeneralTransform):
 
-    def __init__(self, *args, blur_chance=0., **kwargs):
+    def __init__(self, *args, blur_chance=0.5, **kwargs):
         super().__init__(*args, **kwargs)
         self.blur_chance = blur_chance
 

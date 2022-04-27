@@ -1,4 +1,4 @@
-from .byol import ByolTransform
+from .byol import BYOLTransform
 
 __all__ = ['vicreg_transform']
 
@@ -10,4 +10,4 @@ def vicreg_transform():
     they claim that BYOL augmentations work slightly better. For simplicity,
     I also kept byol.
     '''
-    return ByolTransform()
+    return BYOLTransform()

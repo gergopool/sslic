@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from .general import Loss
 from ..utils import AllGather
 
 __all__ = ['vicreg_loss']
@@ -9,7 +10,7 @@ __all__ = ['vicreg_loss']
 EPS = 1e-4
 
 
-class VICRegLoss(nn.Module):
+class VICRegLoss(Loss):
     """VICRegLoss Loss
 
     Credits: https://github.com/facebookresearch/vicreg/blob/main/main_vicreg.py
@@ -46,5 +47,5 @@ class VICRegLoss(nn.Module):
         return mse_loss + std_loss + cov_loss
 
 
-def vicreg_loss() -> nn.Module:
-    return VICRegLoss()
+def vicreg_loss() -> Loss:
+    return VICRegLoss

@@ -8,8 +8,6 @@ from .byol import *
 from .mocov2 import *
 from .twist import *
 
-n_classes = {"imagenet": 1000, "cifar10": 10, "cifar100": 100}
-
 
 def get_ssl_network(method_name: str, dataset: str, **kwargs) -> nn.Module:
     """Get SSL network based on name and dataset.
@@ -26,7 +24,8 @@ def get_ssl_network(method_name: str, dataset: str, **kwargs) -> nn.Module:
     nn.Module
         The neural network's PyTorch module.
     """
-    method_name += "_" + dataset
+    method_name += "_model"
     if method_name not in globals():
         raise NameError(f"Self-supervised method {method_name} is unknown.")
-    return globals()[method_name](**kwargs)
+    model_builder = getattr(globals()[method_name](), dataset)
+    return model_builder(**kwargs)

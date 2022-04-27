@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
-from torchvision import models
 import math
 
+from ..losses.byol import BYOLLoss
 from .momentum_model import MomentumModel
 
-__all__ = ['byol_imagenet', 'byol_tiny_imagenet', 'byol_cifar10', 'byol_cifar100']
+__all__ = ['byol_model']
 '''
 Important note
 
@@ -16,6 +16,8 @@ uses for smaller datasets.
 
 
 class BYOL(MomentumModel):
+
+    default_loss = BYOLLoss
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,33 +46,22 @@ class BYOL(MomentumModel):
         # No batch shuffle needed
         return self.teacher_net(x)
 
+    @classmethod
+    def imagenet(cls, *args, **kwargs) -> MomentumModel:
+        return super().imagenet(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
 
-def byol_imagenet(**kwargs) -> nn.Module:
-    return MomentumModel(models.resnet50,
-                         dim=256,
-                         hidden_dim=4096,
-                         momentum=0.99,
-                         n_classes=1000,
-                         zero_init_residual=True,
-                         **kwargs)
+    @classmethod
+    def tiny_imagenet(cls, *args, **kwargs) -> MomentumModel:
+        return super().tiny_imagenet(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
 
+    @classmethod
+    def cifar10(cls, *args, **kwargs) -> MomentumModel:
+        return super().tiny_imagenet(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
 
-def byol_tiny_imagenet(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return MomentumModel(resnet18, dim=256, hidden_dim=4096, momentum=0.99, n_classes=200, **kwargs)
-
-
-def byol_cifar10(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return MomentumModel(resnet18, dim=256, hidden_dim=4096, momentum=0.99, n_classes=10, **kwargs)
+    @classmethod
+    def cifar100(cls, *args, **kwargs) -> MomentumModel:
+        return super().tiny_imagenet(*args, dim=256, hidden_dim=4096, momentum=0.996, **kwargs)
 
 
-def byol_cifar100(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return MomentumModel(resnet18,
-                         dim=256,
-                         hidden_dim=4096,
-                         pred_hidden_dim=4096,
-                         momentum=0.99,
-                         n_classes=100,
-                         **kwargs)
+def byol_model() -> BYOL:
+    return BYOL

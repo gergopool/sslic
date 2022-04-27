@@ -16,11 +16,14 @@ from sslic.optimizers import get_optimizer
 from sslic.losses import get_loss
 from ssl_eval import Evaluator
 
+METHODS = ['simsiam', 'simclr', 'barlow_twins', 'ressl', 'vicreg', 'twist', 'mocov2', 'byol']
+DATASETS = ['imagenet', 'tiny_imagenet', 'cifar10', 'cifar100']
+
 parser = argparse.ArgumentParser(description='Simple settings.')
-parser.add_argument('method', type=str, choices=['simsiam', 'simclr', 'barlow_twins', 'ressl'])
+parser.add_argument('method', type=str, choices=METHODS)
 parser.add_argument('data_root', type=str)
 parser.add_argument('--resume', type=str, default=None)
-parser.add_argument('--dataset', type=str, default='cifar10')
+parser.add_argument('--dataset', type=str, default='cifar10', choices=DATASETS)
 parser.add_argument('--run-name', type=str, default='dev')
 parser.add_argument('--batch-size', type=int, default=512)
 parser.add_argument('--epochs', type=int, default=100)
@@ -74,7 +77,7 @@ def get_model(world_size, args):
     # Define model
     kwargs = {}
     if args.loss:
-        kwargs['ssl_loss'] = get_loss(args.loss)
+        kwargs['ssl_loss'] = get_loss(args.loss, args.dataset_name)
     model = get_ssl_network(args.method, args.dataset, **kwargs).cuda()
 
     # Create distributed version if needed

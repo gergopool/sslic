@@ -1,11 +1,12 @@
 import torch
 import torch.nn.functional as F
-from torch import nn
+
+from .general import Loss
 
 __all__ = ['byol_loss']
 
 
-class BYOLLoss(nn.Module):
+class BYOLLoss(Loss):
     """BYOLLoss Loss"""
 
     def forward(self, z_t: torch.Tensor, z_s: torch.Tensor) -> torch.Tensor:
@@ -13,5 +14,5 @@ class BYOLLoss(nn.Module):
         return 2 - 2 * sim
 
 
-def byol_loss() -> nn.Module:
-    return BYOLLoss()
+def byol_loss() -> Loss:
+    return BYOLLoss

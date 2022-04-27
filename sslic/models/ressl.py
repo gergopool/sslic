@@ -1,31 +1,29 @@
-import torch.nn as nn
-from torchvision import models
-
+from ..losses.ressl import ReSSLLoss
 from .momentum_model import MomentumModel
 
-__all__ = ['ressl_imagenet', 'ressl_tiny_imagenet', 'ressl_cifar10', 'ressl_cifar100']
+__all__ = ['ressl_model']
 
 
-def ressl_imagenet(**kwargs) -> nn.Module:
-    return MomentumModel(models.resnet50,
-                         dim=512,
-                         hidden_dim=4096,
-                         momentum=0.999,
-                         n_classes=1000,
-                         zero_init_residual=True,
-                         **kwargs)
+class ReSSL(MomentumModel):
+
+    default_loss = ReSSLLoss
+
+    @classmethod
+    def imagenet(cls, *args, **kwargs) -> MomentumModel:
+        return super().imagenet(*args, dim=512, hidden_dim=4096, momentum=0.999, **kwargs)
+
+    @classmethod
+    def tiny_imagenet(cls, *args, **kwargs) -> MomentumModel:
+        return super().tiny_imagenet(*args, dim=128, hidden_dim=128, momentum=0.996, **kwargs)
+
+    @classmethod
+    def cifar10(cls, *args, **kwargs) -> MomentumModel:
+        return super().tiny_imagenet(*args, dim=128, hidden_dim=128, momentum=0.99, **kwargs)
+
+    @classmethod
+    def cifar100(cls, *args, **kwargs) -> MomentumModel:
+        return super().tiny_imagenet(*args, dim=128, hidden_dim=128, momentum=0.99, **kwargs)
 
 
-def ressl_tiny_imagenet(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return MomentumModel(resnet18, dim=128, hidden_dim=512, momentum=0.996, n_classes=200, **kwargs)
-
-
-def ressl_cifar10(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return MomentumModel(resnet18, dim=128, hidden_dim=512, momentum=0.99, n_classes=10, **kwargs)
-
-
-def ressl_cifar100(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return MomentumModel(resnet18, dim=128, hidden_dim=512, momentum=0.99, n_classes=100, **kwargs)
+def ressl_model() -> ReSSL:
+    return ReSSL

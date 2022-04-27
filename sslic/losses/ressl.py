@@ -1,9 +1,10 @@
 import torch
 import torch.nn.functional as F
 
-from sslic.losses.mocov2 import Mocov2Loss
+from .general import Loss
+from .mocov2 import Mocov2Loss
 
-__all__ = ['ressl_loss', 'ressl_tiny_imagenet_loss', 'ressl_cifar10_loss']
+__all__ = ['ressl_loss']
 
 EPS = 1e-6
 
@@ -14,6 +15,22 @@ class ReSSLLoss(Mocov2Loss):
         super().__init__(*args, tau=tau_s, **kwargs)
         self.tau_s = self.tau  # for convenient naming
         self.tau_t = tau_t
+
+    @classmethod
+    def imagenet(cls, *args, queue_len=131072, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
+
+    @classmethod
+    def tiny_imagenet(cls, *args, queue_len=16384, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
+
+    @classmethod
+    def cifar10(cls, *args, queue_len=16384, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
+
+    @classmethod
+    def cifar100(cls, *args, queue_len=16384, **kwargs):
+        return cls(*args, queue_len=queue_len, **kwargs)
 
     def cross_entropy(self, x, y):
         return torch.sum(-y * torch.log(x + EPS), dim=1).mean()
@@ -38,13 +55,5 @@ class ReSSLLoss(Mocov2Loss):
         return loss
 
 
-def ressl_loss():
-    return ReSSLLoss(emb_dim=512, queue_len=131072)
-
-
-def ressl_tiny_imagenet_loss():
-    return ReSSLLoss(emb_dim=128, queue_len=16384)
-
-
-def ressl_cifar10_loss():
-    return ReSSLLoss(emb_dim=128, queue_len=16384, tau_t=0.05)
+def ressl_loss() -> Loss:
+    return ReSSLLoss

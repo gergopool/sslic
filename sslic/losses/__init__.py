@@ -2,7 +2,6 @@ from torch import nn
 from .barlow_twins import *
 from .simclr import *
 from .simsiam import *
-from .arcloss import *
 from .twist import *
 from .ressl import *
 from .byol import *
@@ -11,7 +10,7 @@ from .vicreg import *
 from .experimental import *
 
 
-def get_loss(method_name: str, **kwargs) -> nn.Module:
+def get_loss(method_name: str) -> nn.Module:
     """Initializes the loss function to the given method.
 
     Parameters
@@ -27,4 +26,4 @@ def get_loss(method_name: str, **kwargs) -> nn.Module:
     method_name += "_loss"
     if method_name not in globals():
         raise NameError(f"Self-supervised loss {method_name} is unknown.")
-    return globals()[method_name](**kwargs)
+    return globals()[method_name]

@@ -1,6 +1,7 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
+
+from .general import Loss
 from ..utils import AllGather
 
 __all__ = ['twist_loss']
@@ -8,7 +9,7 @@ __all__ = ['twist_loss']
 EPS = 1e-5
 
 
-class TwistLoss(nn.Module):
+class TwistLoss(Loss):
 
     def __init__(self, lam1: float = 1., lam2: float = 1.):
         super(TwistLoss, self).__init__()
@@ -45,5 +46,5 @@ class TwistLoss(nn.Module):
         return -(probs * (probs + EPS).log()).sum(dim=1).mean()
 
 
-def twist_loss() -> nn.Module:
-    return TwistLoss()
+def twist_loss() -> Loss:
+    return TwistLoss

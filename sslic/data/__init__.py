@@ -29,6 +29,6 @@ def get_dataset(root: str, method_name: str, dataset_name: str, split: str) -> D
         If either parameter is invalid and not defined. 
     """
     dataset_fn = dataset_name + "_dataset"
-    if dataset_name not in globals():
+    if dataset_fn not in globals():
         raise NameError(f"Dataset {dataset_name} is not known.")
     return globals()[dataset_fn](root, method_name, split)
