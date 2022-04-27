@@ -81,6 +81,13 @@ class BaseModel(nn.Module):
     # =====================================================================
 
     def __repr__(self):
+        '''__repr__
+
+        This function is a copy of the original pytorch __repr__ implementation,
+        except it skips the __repr__ of the backend/encoder, so we only see 
+        the relevant modules in the standard output.
+        '''
+
         # We treat the extra repr like the sub-module, one item per line
         extra_lines = []
         extra_repr = self.extra_repr()
