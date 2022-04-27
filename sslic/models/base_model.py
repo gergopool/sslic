@@ -46,30 +46,34 @@ class BaseModel(nn.Module):
     @classmethod
     def imagenet(cls, *args, **kwargs):
         kwargs.setdefault("base_encoder", resnet50)
-        kwargs.setdefault("ssl_loss", getattr(cls.default_loss, "imagenet"))
+        kwargs.setdefault("ssl_loss", cls.default_loss)
         kwargs.setdefault("zero_init_residual", True)
         kwargs.setdefault("n_classes", 1000)
+        kwargs['ssl_loss'] = kwargs['ssl_loss'].imagenet
         return cls(*args, **kwargs)
 
     @classmethod
     def tiny_imagenet(cls, *args, **kwargs):
         kwargs.setdefault("base_encoder", resnet18)
-        kwargs.setdefault("ssl_loss", getattr(cls.default_loss, "tiny_imagenet"))
+        kwargs.setdefault("ssl_loss", cls.default_loss)
         kwargs.setdefault("n_classes", 200)
+        kwargs['ssl_loss'] = kwargs['ssl_loss'].tiny_imagenet
         return cls(*args, **kwargs)
 
     @classmethod
     def cifar10(cls, *args, **kwargs):
         kwargs.setdefault("base_encoder", resnet18)
-        kwargs.setdefault("ssl_loss", getattr(cls.default_loss, "cifar10"))
+        kwargs.setdefault("ssl_loss", cls.default_loss)
         kwargs.setdefault("n_classes", 10)
+        kwargs['ssl_loss'] = kwargs['ssl_loss'].cifar10
         return cls(*args, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs):
         kwargs.setdefault("base_encoder", resnet18)
-        kwargs.setdefault("ssl_loss", getattr(cls.default_loss, "cifar100"))
+        kwargs.setdefault("ssl_loss", cls.default_loss)
         kwargs.setdefault("n_classes", 100)
+        kwargs['ssl_loss'] = kwargs['ssl_loss'].cifar100
         return cls(*args, **kwargs)
 
     def step(self, progress: float):
