@@ -100,7 +100,7 @@ class CosineAnnealing(Scheduler):
 
     def __repr__(self):
         return f"Scheduler: {type(self).__name__} with {type(self.optimizer).__name__}" + \
-               f"(init_lr={self.init_lr:2.4f}"
+               f"(init_lr={self.init_lr:2.4f})"
 
 
 class WarmUpCosineAnnealing(CosineAnnealing):
