@@ -16,7 +16,9 @@ from sslic.optimizers import get_optimizer
 from sslic.losses import get_loss
 from ssl_eval import Evaluator
 
-METHODS = ['simsiam', 'simclr', 'barlow_twins', 'ressl', 'vicreg', 'twist', 'mocov2', 'byol']
+METHODS = [
+    'simsiam', 'simclr', 'barlow_twins', 'ressl', 'vicreg', 'twist', 'mocov2', 'byol', 'nnclr'
+]
 DATASETS = ['imagenet', 'tiny_imagenet', 'cifar10', 'cifar100']
 
 parser = argparse.ArgumentParser(description='Simple settings.')
