@@ -1,60 +1,32 @@
 import torchvision.datasets as datasets
-import torch
 import os
-from .transforms import get_transform_generator
+from .transforms import get_transform
 
-__all__ = ["simsiam_datasets", "simclr_datasets", "barlow_twins_datasets", "ressl_datasets"]
-
-
-class DatasetGenerator:
-
-    def __init__(self, root, transform_generator, dataset_name='imagenet'):
-        self.root = root
-        self.transform_generator = transform_generator
-        self.dataset_name = dataset_name.lower()
-        if self.dataset_name not in ['imagenet', 'cifar10', 'cifar100', 'tiny_imagenet']:
-            raise NameError(f"Unknown dataset_name: {self.dataset_name}")
-        self.dataset_fn = getattr(self, self.dataset_name)
-
-    def __call__(self, split='ssl') -> torch.utils.data.Dataset:
-        is_train = split in ['ssl', 'train']
-        return self.dataset_fn(split, is_train)
-
-    def imagenet(self, split, is_train):
-        imagenet_dir = "train" if is_train else "val"
-        imagenet_dir = os.path.join(self.root, imagenet_dir)
-        trans = self.transform_generator.make_by_dataset('imagenet', split)
-        return datasets.ImageFolder(imagenet_dir, trans)
-
-    def tiny_imagenet(self, split, is_train):
-        imagenet_dir = "train" if is_train else "val"
-        imagenet_dir = os.path.join(self.root, imagenet_dir)
-        trans = self.transform_generator.make_by_dataset('tiny_imagenet', split)
-        return datasets.ImageFolder(imagenet_dir, trans)
-
-    def cifar10(self, split, is_train):
-        trans = self.transform_generator.make_by_dataset("cifar10", split=split)
-        return datasets.CIFAR10(self.root, is_train, trans)
-
-    def cifar100(self, split, is_train):
-        trans = self.transform_generator.make_by_dataset("cifar100", split=split)
-        return datasets.CIFAR100(self.root, is_train, trans)
+__all__ = ["imagenet_dataset", "tiny_imagenet_dataset", "cifar10_dataset", "cifar100_dataset"]
 
 
-def simsiam_datasets(root, dataset_name):
-    return DatasetGenerator(root, get_transform_generator('simsiam'), dataset_name)
+def imagenet_dataset(root: str, method_name: str, split: str):
+    imagenet_dir = "train" if split in ['ssl', 'train'] else "val"
+    imagenet_dir = os.path.join(root, imagenet_dir)
+    trans = get_transform(method_name, "imagenet", split)
+    return datasets.ImageFolder(imagenet_dir, trans)
 
 
-def simclr_datasets(root, dataset_name):
-    return DatasetGenerator(root, get_transform_generator('simclr'), dataset_name)
+def tiny_imagenet_dataset(root: str, method_name: str, split: str):
+    imagenet_dir = "train" if split in ['ssl', 'train'] else "val"
+    imagenet_dir = os.path.join(root, imagenet_dir)
+    trans = get_transform(method_name, "tiny_imagenet", split)
+    return datasets.ImageFolder(imagenet_dir, trans)
 
 
-def barlow_twins_datasets(root, dataset_name):
-    return DatasetGenerator(root, get_transform_generator('barlow_twins'), dataset_name)
+def cifar10_dataset(root: str, method_name: str, split: str):
+    trans = get_transform(method_name, "cifar10", split)
+    return datasets.CIFAR10(root, split in ['ssl', 'train'], trans)
 
 
-def ressl_datasets(root, dataset_name):
-    return DatasetGenerator(root, get_transform_generator('ressl'), dataset_name)
+def cifar100_dataset(root: str, method_name: str, split: str):
+    trans = get_transform(method_name, "cifar100", split)
+    return datasets.CIFAR100(root, split in ['ssl', 'train'], trans)
 
 
 if __name__ == "__main__":
@@ -64,7 +36,7 @@ if __name__ == "__main__":
 
     # Retrive img
     root = "/data/shared/data/tiny_imagenet"
-    dataset = ressl_datasets(root, "tiny_imagenet")("ssl")
+    dataset = tiny_imagenet_dataset(root, "byol", "ssl")
     x, y = dataset[0]
 
     # Convert to human readable image

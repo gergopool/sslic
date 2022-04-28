@@ -2,10 +2,12 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from .general import Loss
+
 __all__ = ['simsiam_loss']
 
 
-class SimSiamLoss(nn.Module):
+class SimSiamLoss(Loss):
     """SimSiam Loss"""
 
     def forward(self, p1: torch.Tensor, p2: torch.Tensor, z1: torch.Tensor,
@@ -16,5 +18,5 @@ class SimSiamLoss(nn.Module):
         return loss
 
 
-def simsiam_loss() -> nn.Module:
-    return SimSiamLoss()
+def simsiam_loss() -> Loss:
+    return SimSiamLoss

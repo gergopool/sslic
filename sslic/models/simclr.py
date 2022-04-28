@@ -1,12 +1,10 @@
 import torch
 import torch.nn as nn
-from torchvision import models
-from typing import Callable
 
-from ..losses import simclr_loss
+from ..losses.simclr import InfoNCE
 from .base_model import BaseModel
 
-__all__ = ['simclr_imagenet', 'simclr_tiny_imagenet', 'simclr_cifar10', 'simclr_cifar100']
+__all__ = ['simclr_model']
 
 
 class SimCLR(BaseModel):
@@ -15,8 +13,10 @@ class SimCLR(BaseModel):
     Credits: https://github.com/google-research/simclr
     """
 
-    def __init__(self, base_encoder: nn.Module, ssl_loss: Callable = simclr_loss(), **kwargs):
-        super(SimCLR, self).__init__(base_encoder, ssl_loss=ssl_loss, **kwargs)
+    default_loss = InfoNCE
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # Projection head
         self.projector = nn.Sequential(nn.Linear(self.prev_dim, self.prev_dim),
@@ -35,21 +35,22 @@ class SimCLR(BaseModel):
 
         return z1, z2
 
+    @classmethod
+    def imagenet(cls, *args, **kwargs) -> BaseModel:
+        return super().imagenet(*args, dim=512, **kwargs)
 
-def simclr_imagenet(**kwargs) -> nn.Module:
-    return SimCLR(models.resnet50, dim=512, n_classes=1000, zero_init_residual=True, **kwargs)
+    @classmethod
+    def tiny_imagenet(cls, *args, **kwargs) -> BaseModel:
+        return super().tiny_imagenet(*args, dim=128, **kwargs)
+
+    @classmethod
+    def cifar10(cls, *args, **kwargs) -> BaseModel:
+        return super().cifar10(*args, dim=128, **kwargs)
+
+    @classmethod
+    def cifar100(cls, *args, **kwargs) -> BaseModel:
+        return super().cifar100(*args, dim=128, **kwargs)
 
 
-def simclr_tiny_imagenet(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return SimCLR(resnet18, dim=128, n_classes=200, **kwargs)
-
-
-def simclr_cifar10(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return SimCLR(resnet18, dim=128, n_classes=10, **kwargs)
-
-
-def simclr_cifar100(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return SimCLR(resnet18, dim=128, n_classes=100, **kwargs)
+def simclr_model() -> SimCLR:
+    return SimCLR

@@ -4,8 +4,10 @@ from .barlow_twins import *
 from .simclr import *
 from .simsiam import *
 from .ressl import *
-
-n_classes = {"imagenet": 1000, "cifar10": 10, "cifar100": 100}
+from .byol import *
+from .mocov2 import *
+from .twist import *
+from .vicreg import *
 
 
 def get_ssl_network(method_name: str, dataset: str, **kwargs) -> nn.Module:
@@ -23,7 +25,8 @@ def get_ssl_network(method_name: str, dataset: str, **kwargs) -> nn.Module:
     nn.Module
         The neural network's PyTorch module.
     """
-    method_name += "_" + dataset
+    method_name += "_model"
     if method_name not in globals():
         raise NameError(f"Self-supervised method {method_name} is unknown.")
-    return globals()[method_name](**kwargs)
+    model_builder = getattr(globals()[method_name](), dataset)
+    return model_builder(**kwargs)

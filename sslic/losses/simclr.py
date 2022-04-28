@@ -2,12 +2,13 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from .general import Loss
 from ..utils import AllGather
 
 __all__ = ['simclr_loss']
 
 
-class InfoNCE(nn.Module):
+class InfoNCE(Loss):
     """Info NCE loss (used in SimCLR)
 
         Parameters
@@ -17,9 +18,9 @@ class InfoNCE(nn.Module):
             by default 0.07.
         """
 
-    def __init__(self, tau: float = 0.07):
+    def __init__(self, *args, tau: float = 0.07, **kwargs):
 
-        super(InfoNCE, self).__init__()
+        super().__init__(*args, **kwargs)
         self.tau = tau
 
     def forward(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
@@ -54,5 +55,5 @@ class InfoNCE(nn.Module):
         return loss
 
 
-def simclr_loss():
-    return InfoNCE()
+def simclr_loss() -> Loss:
+    return InfoNCE

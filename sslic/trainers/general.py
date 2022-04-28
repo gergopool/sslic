@@ -60,6 +60,7 @@ class GeneralTrainer(ABC):
             self.logger = EmptyLogger()
         else:
             self.logger = logger
+
         self.start_epoch = 0
 
         # Progress bar with running average metrics
@@ -155,6 +156,7 @@ class GeneralTrainer(ABC):
     def train_an_epoch(self):
         for data_batch in self.train_loader:
             metrics = self.train_step(data_batch)
+            self.model.step(progress=self.scheduler.progress)
             self.scheduler.step()
             self.logger.step()
             for i, lr in enumerate(torch.unique(torch.tensor(self.scheduler.current_unfixed_lrs))):

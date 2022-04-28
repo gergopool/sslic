@@ -1,12 +1,10 @@
 import torch
 import torch.nn as nn
-from typing import Callable
 
-from ..losses import simsiam_loss
+from ..losses.simsiam import SimSiamLoss
 from .base_model import BaseModel
-from torchvision import models
 
-__all__ = ['simsiam_imagenet', 'simsiam_tiny_imagenet', 'simsiam_cifar10', 'simsiam_cifar100']
+__all__ = ['simsiam_model']
 
 
 class SimSiam(BaseModel):
@@ -19,14 +17,10 @@ class SimSiam(BaseModel):
         pred_dim : int, optional
             Dimension of bottleneck layer at predict layer, by default 512
     """
+    default_loss = SimSiamLoss
 
-    def __init__(self,
-                 base_encoder: nn.Module,
-                 pred_dim: int = 512,
-                 mlp_len=3,
-                 ssl_loss: Callable = simsiam_loss(),
-                 **kwargs):
-        super(SimSiam, self).__init__(base_encoder, ssl_loss=ssl_loss, **kwargs)
+    def __init__(self, *args, pred_dim: int = 512, mlp_len=3, **kwargs):
+        super().__init__(*args, **kwargs)
         self.pred_dim = pred_dim
 
         # Projector
@@ -62,27 +56,22 @@ class SimSiam(BaseModel):
 
         return p1, p2, z1, z2
 
+    @classmethod
+    def imagenet(cls, *args, **kwargs) -> BaseModel:
+        return super().imagenet(*args, dim=2048, mlp_len=3, pred_dim=512, **kwargs)
 
-def simsiam_imagenet(**kwargs) -> nn.Module:
-    return SimSiam(models.resnet50,
-                   pred_dim=512,
-                   mlp_len=3,
-                   dim=2048,
-                   n_classes=1000,
-                   zero_init_residual=True,
-                   **kwargs)
+    @classmethod
+    def tiny_imagenet(cls, *args, **kwargs) -> BaseModel:
+        return super().tiny_imagenet(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
 
+    @classmethod
+    def cifar10(cls, *args, **kwargs) -> BaseModel:
+        return super().cifar10(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
 
-def simsiam_tiny_imagenet(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=200, **kwargs)
-
-
-def simsiam_cifar10(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=10, **kwargs)
+    @classmethod
+    def cifar100(cls, *args, **kwargs) -> BaseModel:
+        return super().cifar100(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
 
 
-def simsiam_cifar100(**kwargs) -> nn.Module:
-    from .cifar_resnet import resnet18
-    return SimSiam(resnet18, pred_dim=512, mlp_len=2, dim=2048, n_classes=100, **kwargs)
+def simsiam_model() -> SimSiam:
+    return SimSiam
