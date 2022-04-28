@@ -51,7 +51,7 @@ class Logger:
             f"per_step ({self.log_per_sample}) < distributed batch size ({self.dist_bs})"
         return (round(self.global_step / self.dist_bs) % round(self.log_per_sample / self.dist_bs)) == 0
 
-class EmptyLogger(Logger):
+class EmptyLogger:
     def __init__(self, *args, **kwargs):
         pass
 
