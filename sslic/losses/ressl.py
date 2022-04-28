@@ -33,7 +33,9 @@ class ReSSLLoss(Mocov2Loss):
         return cls(*args, queue_len=queue_len, **kwargs)
 
     def cross_entropy(self, x, y):
-        return torch.sum(-y * torch.log(x + EPS), dim=1).mean()
+        y = F.softmax(y, dim=1)
+        x = F.log_softmax(x, dim=1)
+        return torch.sum(-y * x, dim=1).mean()
 
     def forward(self, z_t: torch.Tensor, z_s: torch.Tensor) -> torch.Tensor:
 
@@ -45,8 +47,8 @@ class ReSSLLoss(Mocov2Loss):
         queue = self.queue.clone().detach()
 
         # Calculate scaled similarities
-        p_s = F.softmax(z_s @ queue.T / self.tau_s, dim=1)
-        p_t = F.softmax(z_t @ queue.T / self.tau_t, dim=1)
+        p_s = z_s @ queue.T / self.tau_s
+        p_t = z_t @ queue.T / self.tau_t
         loss = self.cross_entropy(p_s, p_t)
 
         # Add the teacher embeddings to FIFO

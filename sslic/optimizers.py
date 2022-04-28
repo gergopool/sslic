@@ -81,8 +81,15 @@ def _byol(model: nn.Module, lr: float, weight_decay: float = 1.5e-6):
     return LARS(sgd)
 
 
-def _ressl(*args, **kwargs):
-    return _mocov2(*args, weight_decay=5e-4, **kwargs)
+def _ressl(model: nn.Module, lr: float, weight_decay: float = 1e-4):
+    optim_params = []
+    for name, param in model.named_parameters():
+        if ('bn' in name or 'downsample.1' in name or 'bias' in name):
+            param_dict = {'params': param, 'weight_decay': 0.}
+        else:
+            param_dict = {'params': param}
+        optim_params.append(param_dict)
+    return torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
 
 
 def _simclr(model: nn.Module, lr: float, weight_decay: float = 1e-6):
