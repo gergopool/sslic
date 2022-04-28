@@ -42,4 +42,4 @@ You can replace simsiam wih any algorithms described above. See parsed arguments
 ## Credits
 
 Some parts of the code was inherited from different repositories of the facebookresearch team, so huge credit goes there. Also special thanks to:
- - [@koszpe](https://github.com/koszpe) for adding tensorboard.
+ - [@koszpe](https://github.com/koszpe) for adding tensorboard and providing a docker environment for the development.
