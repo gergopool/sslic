@@ -3,11 +3,12 @@ import torch
 from torch import nn
 
 from ..utils import AllGather
+from .general import Loss
 
 __all__ = ['barlow_twins_loss']
 
 
-class BarlowTwinsLoss(nn.Module):
+class BarlowTwinsLoss(Loss):
     """Barlow Twins Loss
 
     Parameters
@@ -16,8 +17,8 @@ class BarlowTwinsLoss(nn.Module):
         Lambda value to scale the off-diagonal values. 5e-3 by default.
     """
 
-    def __init__(self, lambd: float = 5e-3):
-        super(BarlowTwinsLoss, self).__init__()
+    def __init__(self, *args, lambd: float = 5e-3, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lambd = lambd
 
     def forward(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
@@ -46,5 +47,5 @@ class BarlowTwinsLoss(nn.Module):
         return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
 
 
-def barlow_twins_loss() -> nn.Module:
-    return BarlowTwinsLoss()
+def barlow_twins_loss() -> Loss:
+    return BarlowTwinsLoss

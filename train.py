@@ -10,17 +10,20 @@ from sslic.logger import Logger
 from sslic.scheduler import get_scheduler
 from sslic.trainers import SSLTrainer
 from sslic.models import get_ssl_network
-from sslic.data import get_dataset_provider
+from sslic.data import get_dataset
 import sslic.utils as utils
 from sslic.optimizers import get_optimizer
 from sslic.losses import get_loss
 from ssl_eval import Evaluator
 
+METHODS = ['simsiam', 'simclr', 'barlow_twins', 'ressl', 'vicreg', 'twist', 'mocov2', 'byol']
+DATASETS = ['imagenet', 'tiny_imagenet', 'cifar10', 'cifar100']
+
 parser = argparse.ArgumentParser(description='Simple settings.')
-parser.add_argument('method', type=str, choices=['simsiam', 'simclr', 'barlow_twins', 'ressl'])
+parser.add_argument('method', type=str, choices=METHODS)
 parser.add_argument('data_root', type=str)
 parser.add_argument('--resume', type=str, default=None)
-parser.add_argument('--dataset', type=str, default='cifar10')
+parser.add_argument('--dataset', type=str, default='cifar10', choices=DATASETS)
 parser.add_argument('--run-name', type=str, default='dev')
 parser.add_argument('--batch-size', type=int, default=512)
 parser.add_argument('--epochs', type=int, default=100)
@@ -38,9 +41,8 @@ def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
 
     # Create datasets
     method = args.transform if args.transform else args.method
-    dataset_provider = get_dataset_provider(args.data_root, args.dataset, method_name=method)
-    train_dataset = dataset_provider('ssl')
-    val_dataset = dataset_provider('test')
+    train_dataset = get_dataset(args.data_root, method, args.dataset, 'ssl')
+    val_dataset = get_dataset(args.data_root, method, args.dataset, 'test')
 
     # Create distributed samplers if multiple processes defined
     if world_size > 1:
@@ -106,8 +108,6 @@ def main(rank, world_size, port, args):
 
     # Model
     model = get_model(world_size, args)
-    if rank == 0:
-        print(model)
 
     method = args.opt if args.opt else args.method
     optimizer = get_optimizer(method, model, batch_size=args.batch_size, lr=args.lr)
@@ -138,6 +138,10 @@ def main(rank, world_size, port, args):
                               epochs=args.epochs,
                               ipe=len(train_loader),
                               verbose=rank == 0)
+
+    if rank == 0:
+        print(model)
+        print(scheduler)
 
     trainer = SSLTrainer(model,
                          scheduler, (train_loader, val_loader),
