@@ -119,10 +119,11 @@ def main(rank, world_size, port, args):
     save_params = {"method": args.method, "dataset": args.dataset, "save_dir": save_dir}
 
     # Evaluator
+    n_views = 2 if args.dataset == 'imagenet' else 4
     evaluator = Evaluator(model.encoder,
                           args.dataset,
                           args.data_root,
-                          n_views=2,
+                          n_views=n_views,
                           batch_size=per_gpu_batch_size)
 
     # Logger
