@@ -19,6 +19,7 @@
  * ReSSL
  * TWIST
  * VICReg
+ * NNCLR
 
 ## Implemented datasets
 
