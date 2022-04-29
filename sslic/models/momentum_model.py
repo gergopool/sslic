@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-from typing import Callable
+from functools import partial
 from copy import deepcopy
 
-from ..losses import ressl_loss
+from .split_batch_norm import SplitBatchNorm2d
 from .base_model import BaseModel
 from ..utils import after_init_world_size_n_rank, AllGather
 
@@ -94,3 +94,27 @@ class MomentumModel(BaseModel):
         student_z = self._student_forward(x_hard)
 
         return teacher_z, student_z
+
+    @classmethod
+    def imagenet(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+        return super().imagenet(*args, **kwargs)
+
+    @classmethod
+    def tiny_imagenet(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+        return super().tiny_imagenet(*args, **kwargs)
+
+    @classmethod
+    def cifar10(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+        return super().cifar10(*args, **kwargs)
+
+    @classmethod
+    def cifar100(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+        return super().cifar100(*args, **kwargs)

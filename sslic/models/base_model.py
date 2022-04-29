@@ -57,6 +57,7 @@ class BaseModel(nn.Module):
         kwargs.setdefault("base_encoder", resnet18)
         kwargs.setdefault("ssl_loss", cls.default_loss)
         kwargs.setdefault("n_classes", 200)
+        kwargs.setdefault("pool", True)  # Apply pool on resnet18
         kwargs['ssl_loss'] = kwargs['ssl_loss'].tiny_imagenet
         return cls(*args, **kwargs)
 
