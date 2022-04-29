@@ -53,11 +53,16 @@ def _base_lr(mode: str, batch_size: int):
         "mocov2": scale * 0.03,
         "twist": scale * 0.5,
         "vicreg": scale * 0.2,
+        "nnclr": scale * 0.3
     }
     return lrs[mode]
 
 
-def _vicreg(*args, **kwargs):
+def _nnclr(*args, weight_decay=1e-6, **kwargs):
+    return _byol(*args, **kwargs)
+
+
+def _vicreg(*args, weight_decay=1e-6, **kwargs):
     return _byol(*args, **kwargs)
 
 
