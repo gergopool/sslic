@@ -23,6 +23,14 @@ class LinearEvalTrainer(GeneralTrainer):
         """
         return f'lin_eval_checkpoint_{epoch+1:04d}.pth.tar'
 
+    def _accuracy(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """_accuracy 
+        Accuracy of the model
+        """
+        pred = torch.max(y_hat.data, 1)[1]
+        acc = (pred == y).sum() / len(y)
+        return AllReduce.apply(acc)
+
     def train_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """train_step
 
@@ -50,14 +58,14 @@ class LinearEvalTrainer(GeneralTrainer):
 
         # Predict
         y_hat = self.model(x)
-        loss = self.model.classifier_loss(y_hat, y)
+        loss = self.model.ssl_loss(y_hat, y)
 
         # Backprop
         loss.backward()
         self.optimizer.step()
 
         # Get accuracy among all processes
-        acc = AllReduce.apply(self._accuracy(y_hat, y))
+        acc = self._accuracy(y_hat, y)
         return {'loss': loss.item(), 'acc': acc}
 
     def val_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Dict[str, torch.Tensor]:

@@ -178,14 +178,6 @@ class GeneralTrainer(ABC):
     def val_step(self, batch: torch.Tensor):
         raise NotImplementedError
 
-    def _accuracy(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """_accuracy 
-        Accuracy of the model
-        """
-        pred = torch.max(y_hat.data, 1)[1]
-        acc = (pred == y).sum() / len(y)
-        return AllReduce.apply(acc)
-
 
 class ProgressBar:
 

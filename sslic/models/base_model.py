@@ -1,5 +1,4 @@
 import torch.nn as nn
-from torch.nn.modules.module import _addindent
 
 from torchvision.models import resnet50
 from .cifar_resnet import resnet18
@@ -20,9 +19,6 @@ class BaseModel(nn.Module):
             The dimension of output representation, by default 128
         ssl_loss : nn.Module, optional
             The loss defined on the output representations, by default None
-        n_classes : int, optional
-            Number of output classes. Note that this is always needed
-            because of online accuracy approximation. By default 1000
         """
 
     default_loss = Loss
@@ -31,12 +27,10 @@ class BaseModel(nn.Module):
                  base_encoder: nn.Module,
                  dim: int = 128,
                  ssl_loss: nn.Module = None,
-                 n_classes: int = 1000,
                  **kwargs):
         super(BaseModel, self).__init__()
         self.dim = dim
         self.ssl_loss = ssl_loss(emb_dim=self.dim)
-        self.n_classes = n_classes
 
         # create the encoder
         self.encoder = base_encoder(**kwargs)
@@ -48,7 +42,6 @@ class BaseModel(nn.Module):
         kwargs.setdefault("base_encoder", resnet50)
         kwargs.setdefault("ssl_loss", cls.default_loss)
         kwargs.setdefault("zero_init_residual", True)
-        kwargs.setdefault("n_classes", 1000)
         kwargs['ssl_loss'] = kwargs['ssl_loss'].imagenet
         return cls(*args, **kwargs)
 
@@ -56,7 +49,6 @@ class BaseModel(nn.Module):
     def tiny_imagenet(cls, *args, **kwargs):
         kwargs.setdefault("base_encoder", resnet18)
         kwargs.setdefault("ssl_loss", cls.default_loss)
-        kwargs.setdefault("n_classes", 200)
         kwargs['ssl_loss'] = kwargs['ssl_loss'].tiny_imagenet
         return cls(*args, **kwargs)
 
@@ -64,7 +56,6 @@ class BaseModel(nn.Module):
     def cifar10(cls, *args, **kwargs):
         kwargs.setdefault("base_encoder", resnet18)
         kwargs.setdefault("ssl_loss", cls.default_loss)
-        kwargs.setdefault("n_classes", 10)
         kwargs['ssl_loss'] = kwargs['ssl_loss'].cifar10
         return cls(*args, **kwargs)
 
@@ -72,7 +63,6 @@ class BaseModel(nn.Module):
     def cifar100(cls, *args, **kwargs):
         kwargs.setdefault("base_encoder", resnet18)
         kwargs.setdefault("ssl_loss", cls.default_loss)
-        kwargs.setdefault("n_classes", 100)
         kwargs['ssl_loss'] = kwargs['ssl_loss'].cifar100
         return cls(*args, **kwargs)
 
