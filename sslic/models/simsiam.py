@@ -58,19 +58,31 @@ class SimSiam(BaseModel):
 
     @classmethod
     def imagenet(cls, *args, **kwargs) -> BaseModel:
-        return super().imagenet(*args, dim=2048, mlp_len=3, pred_dim=512, **kwargs)
+        kwargs.setdefault("dim", 2048)
+        kwargs.setdefault("pred_dim", 512)
+        kwargs.setdefault("mlp_len", 3)
+        return super().imagenet(*args, **kwargs)
 
     @classmethod
     def tiny_imagenet(cls, *args, **kwargs) -> BaseModel:
-        return super().tiny_imagenet(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
+        kwargs.setdefault("dim", 2048)
+        kwargs.setdefault("pred_dim", 512)
+        kwargs.setdefault("mlp_len", 2)
+        return super().tiny_imagenet(*args, **kwargs)
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> BaseModel:
-        return super().cifar10(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
+        kwargs.setdefault("dim", 2048)
+        kwargs.setdefault("pred_dim", 512)
+        kwargs.setdefault("mlp_len", 2)
+        return super().cifar10(*args, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> BaseModel:
-        return super().cifar100(*args, dim=2048, mlp_len=2, pred_dim=512, **kwargs)
+        kwargs.setdefault("dim", 2048)
+        kwargs.setdefault("pred_dim", 512)
+        kwargs.setdefault("mlp_len", 2)
+        return super().cifar100(*args, **kwargs)
 
 
 def simsiam_model() -> SimSiam:

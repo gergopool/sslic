@@ -9,7 +9,7 @@ from typing import List
 def get_scheduler(name, *args, **kwargs):
     if name is None:
         return Scheduler(*args, **kwargs)
-    elif name in ['simclr', 'barlow_twins', 'byol', 'vicreg']:
+    elif name in ['simclr', 'barlow_twins', 'byol', 'vicreg', 'nnclr']:
         return warmup_cosine(*args, warmup_epochs=10, **kwargs)
     elif name == "ressl":
         return warmup_cosine(*args, warmup_epochs=5, **kwargs)

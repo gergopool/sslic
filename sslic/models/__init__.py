@@ -8,6 +8,7 @@ from .byol import *
 from .mocov2 import *
 from .twist import *
 from .vicreg import *
+from .nnclr import *
 
 
 def get_ssl_network(method_name: str, dataset: str, **kwargs) -> nn.Module:

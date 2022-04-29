@@ -7,6 +7,7 @@ from .ressl import *
 from .byol import *
 from .mocov2 import *
 from .vicreg import *
+from .nnclr import *
 from .experimental import *
 
 

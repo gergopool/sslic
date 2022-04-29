@@ -7,6 +7,7 @@ from .byol import *
 from .mocov2 import *
 from .twist import *
 from .vicreg import *
+from .nnclr import *
 
 
 def get_transform(method_name: str, dataset_name: str, split: str) -> GeneralTransform:
