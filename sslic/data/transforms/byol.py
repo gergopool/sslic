@@ -24,7 +24,7 @@ class BYOLTransform(MocoTransform):
                 transforms.RandomSolarize(128, p=0.2),
                 transforms.ToTensor(),
                 normalize(norm)
-            ]),
+            ])
             aug_2 = transforms.Compose([
                 transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
                 transforms.RandomHorizontalFlip(p=0.5),
@@ -36,7 +36,7 @@ class BYOLTransform(MocoTransform):
                 transforms.RandomSolarize(128, p=0.),
                 transforms.ToTensor(),
                 normalize(norm)
-            ]),
+            ])
             return MultiCropTransform([aug_1, aug_2])
         else:
             return super().large(split, norm)
