@@ -32,11 +32,13 @@ class BaseModel(nn.Module):
                  dim: int = 128,
                  ssl_loss: nn.Module = None,
                  n_classes: int = 1000,
+                 sync_batchnorm: bool = True,
                  **kwargs):
         super(BaseModel, self).__init__()
         self.dim = dim
         self.ssl_loss = ssl_loss(emb_dim=self.dim)
         self.n_classes = n_classes
+        self.sync_batchnorm = sync_batchnorm
 
         # create the encoder
         self.encoder = base_encoder(**kwargs)

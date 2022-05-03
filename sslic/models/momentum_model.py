@@ -99,22 +99,26 @@ class MomentumModel(BaseModel):
     def imagenet(cls, *args, **kwargs) -> BaseModel:
         if after_init_world_size_n_rank()[0] == 1:
             kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
         return super().imagenet(*args, **kwargs)
 
     @classmethod
     def tiny_imagenet(cls, *args, **kwargs) -> BaseModel:
         if after_init_world_size_n_rank()[0] == 1:
             kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
         return super().tiny_imagenet(*args, **kwargs)
 
     @classmethod
     def cifar10(cls, *args, **kwargs) -> BaseModel:
         if after_init_world_size_n_rank()[0] == 1:
             kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
         return super().cifar10(*args, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs) -> BaseModel:
         if after_init_world_size_n_rank()[0] == 1:
             kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
         return super().cifar100(*args, **kwargs)
