@@ -169,7 +169,7 @@ class GeneralTrainer(ABC):
             else:
                 raise NotImplementedError
             next_y = y.to(device, non_blocking=True)
-            if out_x:
+            if out_x is not None:
                 yield out_x, out_y
         yield next_x, next_y
 
