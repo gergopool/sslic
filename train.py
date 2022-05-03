@@ -28,6 +28,7 @@ parser.add_argument('--resume', type=str, default=None)
 parser.add_argument('--dataset', type=str, default='cifar10', choices=DATASETS)
 parser.add_argument('--run-name', type=str, default='dev')
 parser.add_argument('--batch-size', type=int, default=512)
+parser.add_argument('--emb-gen-batch-size', type=int, default=512)
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
@@ -123,7 +124,7 @@ def main(rank, world_size, port, args):
                           args.dataset,
                           args.data_root,
                           n_views=2,
-                          batch_size=per_gpu_batch_size)
+                          batch_size=args.emb_gen_batch_size)
 
     # Logger
     logger = Logger(log_dir=save_dir,
