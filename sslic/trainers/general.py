@@ -67,7 +67,11 @@ class GeneralTrainer(ABC):
         self.pbar = ProgressBar([self.train_loader], self.rank)
 
         # Checkpoints in which we save the model
-        self.save_checkpoints = []
+        self.save_checkpoints = [
+            1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 400, 500, 600, 800, 1000
+        ]
+
+        self.eval_chackpoints = self.save_checkpoints
 
     @property
     def device(self):
@@ -146,15 +150,31 @@ class GeneralTrainer(ABC):
             self.train_an_epoch()
 
             # Validate
-            if (epoch + 1) % 5 == 0 or epoch == 0:
+            if (epoch + 1) in self.eval_chackpoints:
                 self.run_validation()
 
             # Save network
             if self._need_save(epoch):
                 self._save(epoch)
 
+    def _iter_with_convert(self, data_loader: DataLoader, device: torch.device) -> torch.Tensor:
+        next_x, next_y = None, None
+        for (xs, y) in data_loader:
+            out_x = next_x
+            out_y = next_y
+            if isinstance(xs, list):
+                next_x = [x.to(device, non_blocking=True) for x in xs]
+            elif isinstance(xs, torch.Tensor):
+                next_x = xs.to(device, non_blocking=True)
+            else:
+                raise NotImplementedError
+            next_y = y.to(device, non_blocking=True)
+            if out_x:
+                yield out_x, out_y
+        yield next_x, next_y
+
     def train_an_epoch(self):
-        for data_batch in self.train_loader:
+        for data_batch in self._iter_with_convert(self.train_loader, self.device):
             metrics = self.train_step(data_batch)
             self.model.step(progress=self.scheduler.progress)
             self.scheduler.step()
