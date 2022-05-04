@@ -32,3 +32,7 @@ def get_dataset(root: str, method_name: str, dataset_name: str, split: str) -> D
     if dataset_fn not in globals():
         raise NameError(f"Dataset {dataset_name} is not known.")
     return globals()[dataset_fn](root, method_name, split)
+
+
+def available_datasets():
+    return set([k[:-len('_dataset')] for k in globals() if k.endswith('_dataset')])

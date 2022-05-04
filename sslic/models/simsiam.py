@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from typing import Tuple, List
 
 from ..losses.simsiam import SimSiamLoss
 from .base_model import BaseModel
@@ -42,19 +43,23 @@ class SimSiam(BaseModel):
                                        nn.ReLU(inplace=True),
                                        nn.Linear(self.pred_dim, self.dim))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x1, x2 = x
+    def forward(self, xs: List[torch.Tensor]) -> torch.Tensor:
+        x1, x2 = xs[:2]
+        small_crops = xs[2:]
 
-        h1 = self.encoder(x1)
-        h2 = self.encoder(x2)
-
-        z1 = self.projector(h1)
-        z2 = self.projector(h2)
+        z1 = self.projector(self.encoder(x1))
+        z2 = self.projector(self.encoder(x2))
 
         p1 = self.predictor(z1)
         p2 = self.predictor(z2)
 
-        return p1, p2, z1, z2
+        ps = []
+        for crop in small_crops:
+            ps.append(self.predictor(self.projector(self.encoder(crop))))
+
+        ps = torch.cat(ps, dim=0) if ps else torch.Tensor(0)
+
+        return p1, p2, z1, z2, ps
 
     @classmethod
     def imagenet(cls, *args, **kwargs) -> BaseModel:
@@ -85,5 +90,22 @@ class SimSiam(BaseModel):
         return super().cifar100(*args, **kwargs)
 
 
+class MultiviewSimsiam(SimSiam):
+
+    def forward(self, xs: torch.Tensor) -> Tuple[Tuple[torch.Tensor, torch.Tensor]]:
+
+        results = []
+        for x in xs:
+            z = self.projector(self.encoder(x))
+            p = self.predictor(z)
+            results.append((p, z))
+
+        return tuple(results)
+
+
 def simsiam_model() -> SimSiam:
     return SimSiam
+
+
+def multiview_simsiam_model() -> SimSiam:
+    return MultiviewSimsiam

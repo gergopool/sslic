@@ -30,7 +30,7 @@ class BaseModel(nn.Module):
     def __init__(self,
                  base_encoder: nn.Module,
                  dim: int = 128,
-                 ssl_loss: nn.Module = None,
+                 ssl_loss: Loss = None,
                  n_classes: int = 1000,
                  sync_batchnorm: bool = True,
                  **kwargs):

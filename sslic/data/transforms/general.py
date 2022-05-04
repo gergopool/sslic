@@ -10,7 +10,7 @@ class GeneralTransform(ABC):
 
     def make_by_dataset(self, dataset_name: str, split: str = 'train') -> Callable:
 
-        assert split in ['ssl', 'train', 'test'], f"Unknown split: {split}"
+        assert split in ['ssl', 'multi_crop', 'train', 'test'], f"Unknown split: {split}"
 
         if dataset_name == 'imagenet':
             return self.large(split, norm='imagenet')
@@ -24,7 +24,7 @@ class GeneralTransform(ABC):
             raise NameError(f"Unknown dataset: {dataset_name}")
 
     def large(self, split: str = 'train', norm: str = 'imagenet') -> Callable:
-        assert split in ['ssl', 'train', 'test'], f"Unknown split: {split}"
+        assert split in ['ssl', 'multi_crop', 'train', 'test'], f"Unknown split: {split}"
 
     def medium(self, split: str = 'train', norm: str = 'imagenet') -> Callable:
         assert split in ['ssl', 'train', 'test'], f"Unknown split: {split}"
