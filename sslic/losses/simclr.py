@@ -35,7 +35,7 @@ class InfoNCE(Loss):
         n = len(z)
 
         # Labels telling which images make pairs
-        ones = torch.ones(n // 2).to(z.device)
+        ones = torch.ones(n // 2).to(z.device, non_blocking=True)
         labels = ones.diagflat(n // 2) + ones.diagflat(-n // 2)
 
         # Note: The following code might require a large amount of memory

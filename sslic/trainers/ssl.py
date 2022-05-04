@@ -41,7 +41,7 @@ class SSLTrainer(GeneralTrainer):
         Dict[str, torch.Tensor]
             A dictionary of metrics. E.g. loss, top1 accuracy, top5 accuracy
         """
-        (x, y) = batch
+        (x, _) = batch
         self.model.train()
         device = self.device
 
@@ -52,8 +52,7 @@ class SSLTrainer(GeneralTrainer):
         with torch.cuda.amp.autocast(enabled=True):
 
             # Predict
-            y = y.to(device)  # TODO: This one is not used
-            x = [t.to(device) for t in x]
+            x = [t.to(device, non_blocking=True) for t in x]
             representations = self.model(x)
 
             # For loss calculation use fp32
@@ -73,7 +72,5 @@ class SSLTrainer(GeneralTrainer):
         self.scaler.scale(loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
-        # loss.backward()
-        # self.optimizer.step()
 
         return {**log_dict, "loss": loss.item()}
