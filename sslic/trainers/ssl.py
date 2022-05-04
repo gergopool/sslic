@@ -35,7 +35,7 @@ class SSLTrainer(GeneralTrainer):
         Dict[str, torch.Tensor]
             A dictionary of metrics. E.g. loss, top1 accuracy, top5 accuracy
         """
-        (x, y) = batch
+        (x, _) = batch
         self.model.train()
 
         # Remove all possible gradients
