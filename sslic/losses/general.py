@@ -24,5 +24,8 @@ class Loss(nn.Module):
     def cifar100(cls, *args, **kwargs):
         return cls(*args, *kwargs)
 
+    def step(self, progress: float):
+        pass
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError

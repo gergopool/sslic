@@ -11,12 +11,6 @@ class SSLTrainer(GeneralTrainer):
     Trainer for self-supervised image classification.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SSLTrainer, self).__init__(*args, **kwargs)
-
-        # Checkpoints in which we save
-        self.save_checkpoints = [1, 10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 800, 1000]
-
     def _ckp_name(self, epoch):
         """_ckp_name 
         Checkpoint name used for self-supervised pretrained models.
@@ -43,7 +37,6 @@ class SSLTrainer(GeneralTrainer):
         """
         (x, _) = batch
         self.model.train()
-        device = self.device
 
         # Remove all possible gradients
         self.optimizer.zero_grad()
@@ -52,19 +45,23 @@ class SSLTrainer(GeneralTrainer):
         with torch.cuda.amp.autocast(enabled=True):
 
             # Predict
-            x = [t.to(device, non_blocking=True) for t in x]
             representations = self.model(x)
 
             # For loss calculation use fp32
             with torch.cuda.amp.autocast(enabled=False):
 
                 # Convert back to fp32
-                representations = [x.float() for x in representations]
-                for i, rep in enumerate(representations):
-                    self.logger.log_describe(f"stats/representation_{i}_len", rep.norm(dim=-1))
+                representations = [x.to(torch.float32, non_blocking=True) for x in representations]
+
                 # Calculate loss
                 loss = self.model.ssl_loss(*representations)
                 log_dict = {}
+
+                # Log
+                if self.logger.need_log():
+                    for i, rep in enumerate(representations):
+                        self.logger.log_describe(f"stats/representation_{i}_len", rep.norm(dim=-1))
+
                 if type(loss) is tuple:
                     loss, log_dict = loss
 
