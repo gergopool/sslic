@@ -71,7 +71,7 @@ class GeneralTrainer(ABC):
             1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 400, 500, 600, 800, 1000
         ]
 
-        self.eval_chackpoints = self.save_checkpoints
+        self.eval_checkpoints = self.save_checkpoints
 
     @property
     def device(self):
@@ -150,7 +150,7 @@ class GeneralTrainer(ABC):
             self.train_an_epoch()
 
             # Validate
-            if (epoch + 1) in self.eval_chackpoints:
+            if (epoch + 1) in self.eval_checkpoints:
                 self.run_validation()
 
             # Save network
