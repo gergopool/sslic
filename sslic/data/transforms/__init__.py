@@ -3,6 +3,7 @@ from .mocov2 import *
 from .barlow_twins import *
 from .ressl import *
 from .simsiam import *
+from .simclr import *
 from .byol import *
 from .mocov2 import *
 from .twist import *
