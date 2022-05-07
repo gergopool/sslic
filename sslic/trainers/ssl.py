@@ -39,7 +39,7 @@ class SSLTrainer(GeneralTrainer):
         self.model.train()
 
         # Remove all possible gradients
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=True)
 
         # Use fp16 to save memory
         with torch.cuda.amp.autocast(enabled=True):
