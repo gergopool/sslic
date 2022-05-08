@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from functools import partial
 from copy import deepcopy
+from typing import List, Tuple
 
 from .split_batch_norm import SplitBatchNorm2d
 from .base_model import BaseModel
@@ -82,8 +83,9 @@ class MomentumModel(BaseModel):
             z = self.teacher_net(x)
         return z
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x_easy, x_hard = x
+    def forward(self, xs: List[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        x_easy = xs[0]
+        x_hard = xs[1:]
 
         # Teacher side
         with torch.no_grad():
@@ -91,7 +93,10 @@ class MomentumModel(BaseModel):
             teacher_z = self._teacher_forward(x_easy)
 
         # Student side
-        student_z = self._student_forward(x_hard)
+        student_z = []
+        for x in x_hard:
+            student_z.append(self._student_forward(x))
+        student_z = torch.cat(student_z, dim=0)
 
         return teacher_z, student_z
 

@@ -13,8 +13,6 @@ from sslic.optimizers import get_optimizer
 from sslic.data import get_dataset
 import sslic.utils as utils
 
-EPOCHS = 100
-BATCH_SIZE = 256
 OPT = "linear_eval"  # sgd
 SCHEDULER = 'linear_eval'
 TRANS = 'mocov2'
@@ -24,6 +22,9 @@ parser.add_argument('pretrained', type=str)
 parser.add_argument('data_root', type=str)
 parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--devices', type=str, nargs='+', default=[])
+parser.add_argument('--batch-size', type=int, default=256)
+parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--n-workers', type=int, default=16)
 
 
 def get_data_loaders(rank, world_size, per_gpu_batch_size, checkpoint, args):
@@ -49,14 +50,14 @@ def get_data_loaders(rank, world_size, per_gpu_batch_size, checkpoint, args):
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=per_gpu_batch_size,
                                                shuffle=shuffle,
-                                               num_workers=32,
+                                               num_workers=args.n_workers,
                                                pin_memory=True,
                                                persistent_workers=True,
                                                sampler=train_sampler)
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=per_gpu_batch_size,
                                              shuffle=False,
-                                             num_workers=32,
+                                             num_workers=args.n_workers,
                                              pin_memory=True,
                                              persistent_workers=True,
                                              sampler=val_sampler)
@@ -109,7 +110,7 @@ def main(rank, world_size, port, args):
         torch.distributed.barrier()
 
     # Divide batch size
-    per_gpu_batch_size = BATCH_SIZE // world_size
+    per_gpu_batch_size = args.batch_size // world_size
 
     # Get checkpoint
     checkpoint = torch.load(args.pretrained, map_location="cpu")
@@ -121,10 +122,10 @@ def main(rank, world_size, port, args):
     model = get_model(args, world_size, checkpoint=checkpoint)
 
     # Scheduler
-    optimizer = get_optimizer(OPT, model, batch_size=BATCH_SIZE)
+    optimizer = get_optimizer(OPT, model, batch_size=args.batch_size)
     scheduler = get_scheduler(SCHEDULER,
                               optimizer=optimizer,
-                              epochs=EPOCHS,
+                              epochs=args.epochs,
                               ipe=len(train_loader),
                               verbose=rank == 0)
 
@@ -139,7 +140,7 @@ def main(rank, world_size, port, args):
     cudnn.benchmark = True
 
     # Train
-    trainer.train(EPOCHS)
+    trainer.train(args.epochs)
 
 
 if __name__ == '__main__':

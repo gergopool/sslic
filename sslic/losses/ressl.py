@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from typing import List
 
 from .general import Loss
 from .mocov2 import Mocov2Loss
@@ -42,6 +43,11 @@ class ReSSLLoss(Mocov2Loss):
         # Normalize the embedings
         z_t = F.normalize(z_t, dim=1)
         z_s = F.normalize(z_s, dim=1)
+        z_to_store = z_t  # Saving embs because they might change
+
+        # In case of multicrop
+        if len(z_s) > len(z_t):
+            z_t = z_t.repeat(len(z_s) // len(z_t), 1)
 
         # Queue is always normalized, no need for normalization
         queue = self.queue.clone().detach()
@@ -52,7 +58,7 @@ class ReSSLLoss(Mocov2Loss):
         loss = self.cross_entropy(p_s, p_t)
 
         # Add the teacher embeddings to FIFO
-        self.add_to_queue(z_t)
+        self.add_to_queue(z_to_store)
 
         return loss
 

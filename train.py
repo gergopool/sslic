@@ -9,23 +9,18 @@ import torch.backends.cudnn as cudnn
 from sslic.logger import Logger
 from sslic.scheduler import get_scheduler
 from sslic.trainers import SSLTrainer
-from sslic.models import get_ssl_network
-from sslic.data import get_dataset
+from sslic.models import get_ssl_network, available_archs
+from sslic.data import get_dataset, available_datasets
 import sslic.utils as utils
 from sslic.optimizers import get_optimizer
 from sslic.losses import get_loss
 from ssl_eval import Evaluator
 
-METHODS = [
-    'simsiam', 'simclr', 'barlow_twins', 'ressl', 'vicreg', 'twist', 'mocov2', 'byol', 'nnclr'
-]
-DATASETS = ['imagenet', 'tiny_imagenet', 'cifar10', 'cifar100']
-
 parser = argparse.ArgumentParser(description='Simple settings.')
-parser.add_argument('method', type=str, choices=METHODS)
+parser.add_argument('method', type=str, choices=available_archs())
 parser.add_argument('data_root', type=str)
 parser.add_argument('--resume', type=str, default=None)
-parser.add_argument('--dataset', type=str, default='cifar10', choices=DATASETS)
+parser.add_argument('--dataset', type=str, default='cifar10', choices=available_datasets())
 parser.add_argument('--run-name', type=str, default='dev')
 parser.add_argument('--batch-size', type=int, default=512)
 parser.add_argument('--emb-gen-batch-size', type=int, default=512)
@@ -36,16 +31,17 @@ parser.add_argument('--opt', type=str, default=None)
 parser.add_argument('--transform', type=str, default=None)
 parser.add_argument('--scheduler', type=str, default=None)
 parser.add_argument('--save-dir', type=str, default="checkpoints")
+parser.add_argument('--multicrop', action='store_true')
 parser.add_argument('--devices', type=str, nargs='+', default=[])
 
 
-def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
+def get_data_loader(rank, world_size, per_gpu_batch_size, args):
     '''Define data loaders to a specific process.'''
 
     # Create datasets
     method = args.transform if args.transform else args.method
-    train_dataset = get_dataset(args.data_root, method, args.dataset, 'ssl')
-    val_dataset = get_dataset(args.data_root, method, args.dataset, 'test')
+    trans_type = 'multi_crop' if args.multicrop else 'ssl'
+    train_dataset = get_dataset(args.data_root, method, args.dataset, trans_type)
 
     # Create distributed samplers if multiple processes defined
     if world_size > 1:
@@ -64,22 +60,17 @@ def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
                                                drop_last=True,
                                                persistent_workers=True,
                                                sampler=train_sampler)
-    return train_loader, None
+    return train_loader
 
 
 def get_model(world_size, args):
     # Define model
     kwargs = {}
     if args.loss:
-<<<<<<< Updated upstream
-        kwargs['ssl_loss'] = get_loss(args.loss)
+        kwargs['criterion'] = get_loss(args.loss)
     model = get_ssl_network(args.method, args.dataset, **kwargs)
     memory_format = torch.channels_last if model.sync_batchnorm else torch.contiguous_format
     model = model.to(device='cuda', memory_format=memory_format)
-=======
-        kwargs['criterion'] = get_loss(args.loss)
-    model = get_ssl_network(args.method, args.dataset, **kwargs).cuda()
->>>>>>> Stashed changes
 
     # Create distributed version if needed
     if world_size > 1:
@@ -106,7 +97,7 @@ def main(rank, world_size, port, args):
     per_gpu_batch_size = args.batch_size // world_size
 
     # Data Loaders
-    train_loader, val_loader = get_data_loaders(rank, world_size, per_gpu_batch_size, args)
+    train_loader = get_data_loader(rank, world_size, per_gpu_batch_size, args)
 
     # Model
     model = get_model(world_size, args)
@@ -146,7 +137,7 @@ def main(rank, world_size, port, args):
         print(scheduler)
 
     trainer = SSLTrainer(model,
-                         scheduler, (train_loader, val_loader),
+                         scheduler, (train_loader, None),
                          save_params=save_params,
                          evaluator=evaluator,
                          logger=logger)
