@@ -41,8 +41,8 @@ class LARS(object):
     def load_state_dict(self, state_dict):
         self.optim.load_state_dict(state_dict)
 
-    def zero_grad(self):
-        self.optim.zero_grad()
+    def zero_grad(self, *args, **kwargs):
+        self.optim.zero_grad(*args, **kwargs)
 
     def add_param_group(self, param_group):
         self.optim.add_param_group(param_group)
