@@ -36,6 +36,7 @@ class BYOL(MomentumModel):
 
     def step(self, progress: float):
         # Cosine schedule on momentum
+        super().step(progress)
         scale = 0.5 * (1. + math.cos(math.pi * progress))
         self.momentum = scale * self.base_momentum + (1 - scale)
 

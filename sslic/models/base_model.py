@@ -1,5 +1,4 @@
 import torch.nn as nn
-from torch.nn.modules.module import _addindent
 
 from torchvision.models import resnet50
 from .cifar_resnet import resnet18
@@ -82,6 +81,7 @@ class BaseModel(nn.Module):
     def step(self, progress: float):
         # Some models might require a continuous change
         assert progress >= 0. and progress <= 1.
+        self.ssl_loss.step(progress)
 
     # =====================================================================
     # SUQEEZE THE __REPR__ OF BACKEND

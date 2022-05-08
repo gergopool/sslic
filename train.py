@@ -23,6 +23,7 @@ parser.add_argument('--resume', type=str, default=None)
 parser.add_argument('--dataset', type=str, default='cifar10', choices=available_datasets())
 parser.add_argument('--run-name', type=str, default='dev')
 parser.add_argument('--batch-size', type=int, default=512)
+parser.add_argument('--emb-gen-batch-size', type=int, default=512)
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--loss', type=str, default=None)
 parser.add_argument('--lr', type=float, default=None)
@@ -67,7 +68,9 @@ def get_model(world_size, args):
     kwargs = {}
     if args.loss:
         kwargs['ssl_loss'] = get_loss(args.loss)
-    model = get_ssl_network(args.method, args.dataset, **kwargs).cuda()
+    model = get_ssl_network(args.method, args.dataset, **kwargs)
+    memory_format = torch.channels_last if model.sync_batchnorm else torch.contiguous_format
+    model = model.to(device='cuda', memory_format=memory_format)
 
     # Create distributed version if needed
     if world_size > 1:
@@ -107,12 +110,11 @@ def main(rank, world_size, port, args):
     save_params = {"method": args.method, "dataset": args.dataset, "save_dir": save_dir}
 
     # Evaluator
-    n_views = 2 if args.dataset == 'imagenet' else 4
     evaluator = Evaluator(model.encoder,
                           args.dataset,
                           args.data_root,
-                          n_views=n_views,
-                          batch_size=per_gpu_batch_size)
+                          n_views=2,
+                          batch_size=args.emb_gen_batch_size)
 
     # Logger
     logger = Logger(log_dir=save_dir,
