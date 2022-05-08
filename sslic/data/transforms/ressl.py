@@ -1,5 +1,5 @@
 import torchvision.transforms as transforms
-from typing import Callable
+from typing import Callable, Tuple, List
 
 from .norm import normalize
 from .utils import MultiCropTransform
@@ -28,24 +28,38 @@ class ReSSLTransform(MocoTransform):
         else:
             return super().large(split, norm)
 
+    def multi_crop(self, sizes: List[int], scales: List[Tuple[float, float]],
+                   norm: str) -> Callable:
+        trans = [self._aug_t(sizes[0], scales[0], norm)]
+        for size, scale in zip(sizes[1:], scales[1:]):
+            trans.append(self._aug_s(size, scale, norm))
+        return MultiCropTransform(trans)
+
     # ========================================================================
     # PRIVATE FUNCTIONS
     # ========================================================================
 
-    def _aug_t(self, size: int, norm: str = 'imagenet') -> Callable:
+    def _aug_t(self,
+               size: int,
+               scale: Tuple[float, float] = (0.2, 1.),
+               norm: str = 'imagenet') -> Callable:
         '''Teacher augmentations / weak augmentations'''
         return transforms.Compose([
-            transforms.RandomResizedCrop(size, scale=(0.2, 1.)),
+            transforms.RandomResizedCrop(size, scale=scale),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize(norm)
         ])
 
-    def _aug_s(self, size: int, norm: str = 'imagenet', blur_chance: float = 0.5) -> Callable:
+    def _aug_s(self,
+               size: int,
+               scale: Tuple[float, float] = (0.2, 1.),
+               norm: str = 'imagenet',
+               blur_chance: float = 0.5) -> Callable:
         '''Student augmentations / hard augmentations'''
         kernel_size = int((size // 20) * 2) + 1
         return transforms.Compose([
-            transforms.RandomResizedCrop(size, scale=(0.2, 1.)),
+            transforms.RandomResizedCrop(size, scale=scale),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.RandomApply([transforms.GaussianBlur(kernel_size, [.1, 2.])], p=blur_chance),

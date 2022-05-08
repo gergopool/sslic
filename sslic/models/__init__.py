@@ -31,3 +31,7 @@ def get_ssl_network(method_name: str, dataset: str, **kwargs) -> nn.Module:
         raise NameError(f"Self-supervised method {method_name} is unknown.")
     model_builder = getattr(globals()[method_name](), dataset)
     return model_builder(**kwargs)
+
+
+def available_archs():
+    return set([k[:-len('_model')] for k in globals() if k.endswith('_model')])
