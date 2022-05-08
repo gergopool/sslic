@@ -51,7 +51,10 @@ class SSLTrainer(GeneralTrainer):
             with torch.cuda.amp.autocast(enabled=False):
 
                 # Convert back to fp32
-                representations = [x.to(torch.float32, non_blocking=True) for x in representations]
+                representations = [
+                    x.to(torch.float32, memory_format=torch.contiguous_format, non_blocking=True)
+                    for x in representations
+                ]
 
                 # Calculate loss
                 loss = self.model.ssl_loss(*representations)
@@ -60,7 +63,8 @@ class SSLTrainer(GeneralTrainer):
                 # Log
                 if self.logger.need_log():
                     for i, rep in enumerate(representations):
-                        self.logger.log_describe(f"stats/representation_{i}_len", rep.norm(dim=-1))
+                        self.logger.log_describe(f"stats/representation_{i}_len",
+                                                 rep.norm(dim=-1).detach())
 
                 if type(loss) is tuple:
                     loss, log_dict = loss

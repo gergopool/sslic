@@ -50,11 +50,9 @@ def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
     # Create distributed samplers if multiple processes defined
     if world_size > 1:
         train_sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
-        val_sampler = DistributedSampler(val_dataset, num_replicas=world_size, rank=rank)
         shuffle = False
     else:
         train_sampler = None
-        val_sampler = None
         shuffle = True
 
     # Data loaders
@@ -66,14 +64,7 @@ def get_data_loaders(rank, world_size, per_gpu_batch_size, args):
                                                drop_last=True,
                                                persistent_workers=True,
                                                sampler=train_sampler)
-    val_loader = torch.utils.data.DataLoader(val_dataset,
-                                             batch_size=per_gpu_batch_size,
-                                             shuffle=False,
-                                             num_workers=8,
-                                             pin_memory=True,
-                                             persistent_workers=True,
-                                             sampler=val_sampler)
-    return train_loader, val_loader
+    return train_loader, None
 
 
 def get_model(world_size, args):
@@ -81,11 +72,14 @@ def get_model(world_size, args):
     kwargs = {}
     if args.loss:
         kwargs['ssl_loss'] = get_loss(args.loss)
-    model = get_ssl_network(args.method, args.dataset, **kwargs).cuda()
+    model = get_ssl_network(args.method, args.dataset, **kwargs)
+    memory_format = torch.channels_last if model.sync_batchnorm else torch.contiguous_format
+    model = model.to(device='cuda', memory_format=memory_format)
 
     # Create distributed version if needed
     if world_size > 1:
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        if model.sync_batchnorm:
+            model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = utils.DDP(model)
 
     return model

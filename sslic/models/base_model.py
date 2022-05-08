@@ -1,5 +1,4 @@
 import torch.nn as nn
-from torch.nn.modules.module import _addindent
 
 from torchvision.models import resnet50
 from .cifar_resnet import resnet18

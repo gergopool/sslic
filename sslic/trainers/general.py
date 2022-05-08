@@ -5,6 +5,7 @@ import os
 from abc import ABC
 from ssl_eval import Evaluator
 from typing import Tuple
+import gc
 
 from .. import pkbar
 from ..logger import Logger, EmptyLogger
@@ -149,6 +150,9 @@ class GeneralTrainer(ABC):
             # Train
             self.train_an_epoch()
 
+            # Clean up some space
+            gc.collect()
+
             # Validate
             if (epoch + 1) in self.eval_checkpoints:
                 self.run_validation()
@@ -159,13 +163,20 @@ class GeneralTrainer(ABC):
 
     def _iter_with_convert(self, data_loader: DataLoader, device: torch.device) -> torch.Tensor:
         next_x, next_y = None, None
+        mem_format = torch.channels_last if self.model.sync_batchnorm else torch.contiguous_format
         for (xs, y) in data_loader:
             out_x = next_x
             out_y = next_y
             if isinstance(xs, list):
-                next_x = [x.to(device, non_blocking=True) for x in xs]
+                next_x = [
+                    x.to(device, memory_format=mem_format, dtype=torch.float16, non_blocking=True)
+                    for x in xs
+                ]
             elif isinstance(xs, torch.Tensor):
-                next_x = xs.to(device, non_blocking=True)
+                next_x = xs.to(device,
+                               memory_format=mem_format,
+                               dtype=torch.float16,
+                               non_blocking=True)
             else:
                 raise NotImplementedError
             next_y = y.to(device, non_blocking=True)
