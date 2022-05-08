@@ -71,10 +71,15 @@ def get_model(world_size, args):
     # Define model
     kwargs = {}
     if args.loss:
+<<<<<<< Updated upstream
         kwargs['ssl_loss'] = get_loss(args.loss)
     model = get_ssl_network(args.method, args.dataset, **kwargs)
     memory_format = torch.channels_last if model.sync_batchnorm else torch.contiguous_format
     model = model.to(device='cuda', memory_format=memory_format)
+=======
+        kwargs['criterion'] = get_loss(args.loss)
+    model = get_ssl_network(args.method, args.dataset, **kwargs).cuda()
+>>>>>>> Stashed changes
 
     # Create distributed version if needed
     if world_size > 1:

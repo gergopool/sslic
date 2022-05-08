@@ -1,9 +1,10 @@
 import torch
 from abc import ABC
 from typing import Tuple, Dict
+from ssl_eval import Evaluator
 
-from .general import GeneralTrainer
-from ..utils import AllReduce
+from .general import GeneralTrainer, ProgressBar
+from ..utils import AllGather, AllReduce
 
 
 class LinearEvalTrainer(GeneralTrainer):
@@ -39,26 +40,44 @@ class LinearEvalTrainer(GeneralTrainer):
             A dictionary of metrics. E.g. loss, top1 accuracy, top5 accuracy
         """
         (x, y) = batch
-        y = y.cuda()
-        x = x.cuda()
 
         # Put model to eval mode to avoid BatchNorm updates
+        # Note: only linear layer is trained which has no batchnorm
         self.model.eval()
 
         # Remove all possible gradients
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=True)
 
         # Predict
         y_hat = self.model(x)
-        loss = self.model.classifier_loss(y_hat, y)
+        loss = self.model.criterion(y_hat, y)
 
         # Backprop
-        loss.backward()
-        self.optimizer.step()
+        self.scaler.scale(loss).backward()
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
 
-        # Get accuracy among all processes
-        acc = AllReduce.apply(self._accuracy(y_hat, y))
+        # Accuracy
+        y_hat = AllGather.apply(y_hat)
+        y = AllGather.apply(y)
+        hits = (y_hat.argmax(dim=1) == y).sum()
+        acc = hits / len(y)
         return {'loss': loss.item(), 'acc': acc}
+
+    def run_validation(self):
+
+        # Note: Although we count moving average accuracy on progress bar, we
+        # also count the total number of hits and validation points. This is
+        # made for official results, e.g. data loaders with drop_last=False
+        # will be counted correctly.
+        hits, total = 0, 0
+
+        for data_batch in self._iter_with_convert(self.val_loader, self.device):
+            batch_hits, batch_n = self.val_step(data_batch)
+            hits += batch_hits
+            total += batch_n
+        acc = (hits / total) * 100
+        print(f"Accuracy: {acc:3.2f}%")
 
     def val_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """val_step
@@ -76,8 +95,6 @@ class LinearEvalTrainer(GeneralTrainer):
             A dictionary of metrics. E.g. loss, top1 accuracy, top5 accuracy
         """
         (x, y) = batch
-        y = y.cuda()
-        x = x.cuda()
 
         # Put model to eval mode to avoid BatchNorm updates
         self.model.eval()
@@ -85,9 +102,12 @@ class LinearEvalTrainer(GeneralTrainer):
         # Predict
         with torch.no_grad():
             y_hat = self.model(x)
+            loss = self.model.criterion(y_hat, y)
 
         # Calculate loss and metrics
-        loss = AllReduce.apply(self.model.classifier_loss(y_hat, y))
-        acc = AllReduce.apply(self._accuracy(y_hat, y))
+        y_hat = AllGather.apply(y_hat)
+        y = AllGather.apply(y)
 
-        return {'loss': loss.item(), 'acc': acc}
+        hits = (y_hat.argmax(dim=1) == y).sum()
+        total = len(y)
+        return int(hits), int(total)

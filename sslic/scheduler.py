@@ -17,6 +17,8 @@ def get_scheduler(name, *args, **kwargs):
         return cosine(*args, **kwargs)
     elif name in ['cosine', 'warmup_cosine']:
         return globals()[name](*args, **kwargs)
+    elif name == 'linear_eval':
+        return multi_step(*args, steps=[0.333, 0.667], scale=0.1, **kwargs)
     else:
         raise NameError(f"Unknown scheduler: {name}")
 
@@ -84,6 +86,31 @@ class Scheduler:
                f"(lr={self.current_lrs[0]:2.4f})"
 
 
+class MultiStep(Scheduler):
+
+    def __init__(self, *args, steps=[0.333, 0.667], scale=0.1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.steps = sorted(steps)
+        self.step_i = 0
+        self.scale = scale
+
+    def set_lr(self) -> None:
+        for param_group in self.optimizer.param_groups:
+            if not ('fix_lr' in param_group and param_group['fix_lr']):
+                param_group['lr'] *= self.scale
+
+    def on_step(self):
+        if self.is_epoch_end and \
+           self.step_i < len(self.steps) and \
+           self.progress > self.steps[self.step_i]:
+            self.set_lr()
+            self.step_i += 1
+
+    def __repr__(self):
+        return f"Scheduler: {type(self).__name__} with {type(self.optimizer).__name__}" + \
+               f"(init_lr={self.init_lr:2.4f})"
+
+
 class CosineAnnealing(Scheduler):
 
     def __init__(self, *args, **kwargs):
@@ -144,3 +171,7 @@ def cosine(*args, **kwargs):
 
 def warmup_cosine(*args, **kwargs):
     return WarmUpCosineAnnealing(*args, **kwargs)
+
+
+def multi_step(*args, **kwargs):
+    return MultiStep(*args, **kwargs)

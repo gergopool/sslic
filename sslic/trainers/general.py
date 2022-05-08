@@ -3,7 +3,6 @@ from torch import nn
 from torch.utils.data import DataLoader
 import os
 from abc import ABC
-from ssl_eval import Evaluator
 from typing import Tuple
 import gc
 
@@ -46,14 +45,12 @@ class GeneralTrainer(ABC):
                  scheduler: Scheduler,
                  data_loaders: Tuple[DataLoader, DataLoader],
                  save_params: dict = {"save_dir": None},
-                 evaluator: Evaluator = None,
                  logger: Logger = EmptyLogger()):
         self.model = model
         self.optimizer = scheduler.optimizer
         self.train_loader, self.val_loader = data_loaders
         self.save_dir = save_params.pop('save_dir')
         self.save_dict = save_params
-        self.evaluator = evaluator
         self.scheduler = scheduler
         self.scaler = torch.cuda.amp.GradScaler()
         self.world_size, self.rank = after_init_world_size_n_rank()
@@ -197,11 +194,7 @@ class GeneralTrainer(ABC):
                 self.logger.add_scalar(f"train/{k}", v)
 
     def run_validation(self):
-        self.evaluator.generate_embeddings()
-        batch_size = 4096 // self.world_size
-        init_lr = 1.6
-        accuracy = self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
-        self.logger.add_scalar("test/lineval_acc", accuracy, force=True)
+        raise NotImplementedError
 
     def train_step(self, batch: torch.Tensor):
         raise NotImplementedError

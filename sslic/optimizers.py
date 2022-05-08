@@ -53,9 +53,15 @@ def _base_lr(mode: str, batch_size: int):
         "mocov2": scale * 0.03,
         "twist": scale * 0.5,
         "vicreg": scale * 0.2,
-        "nnclr": scale * 0.3
+        "nnclr": scale * 0.3,
+        "linear_eval": scale * 0.01  # scale = 1 for swav baseline
     }
     return lrs[mode]
+
+
+def _linear_eval(model: nn.Module, lr: float, weight_decay: float = 1e-4):
+    optim_params = model.classifier.parameters()
+    return torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
 
 
 def _nnclr(*args, weight_decay=1e-6, **kwargs):
