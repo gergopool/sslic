@@ -3,8 +3,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 import os
 from abc import ABC
-from ssl_eval import Evaluator
 from typing import Tuple
+import gc
 
 from .. import pkbar
 from ..logger import Logger, EmptyLogger
@@ -45,14 +45,12 @@ class GeneralTrainer(ABC):
                  scheduler: Scheduler,
                  data_loaders: Tuple[DataLoader, DataLoader],
                  save_params: dict = {"save_dir": None},
-                 evaluator: Evaluator = None,
                  logger: Logger = EmptyLogger()):
         self.model = model
         self.optimizer = scheduler.optimizer
         self.train_loader, self.val_loader = data_loaders
         self.save_dir = save_params.pop('save_dir')
         self.save_dict = save_params
-        self.evaluator = evaluator
         self.scheduler = scheduler
         self.scaler = torch.cuda.amp.GradScaler()
         self.world_size, self.rank = after_init_world_size_n_rank()
@@ -67,7 +65,11 @@ class GeneralTrainer(ABC):
         self.pbar = ProgressBar([self.train_loader], self.rank)
 
         # Checkpoints in which we save the model
-        self.save_checkpoints = []
+        self.save_checkpoints = [
+            1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 400, 500, 600, 800, 1000
+        ]
+
+        self.eval_checkpoints = self.save_checkpoints
 
     @property
     def device(self):
@@ -145,16 +147,42 @@ class GeneralTrainer(ABC):
             # Train
             self.train_an_epoch()
 
+            # Clean up some space
+            gc.collect()
+
             # Validate
-            if (epoch + 1) % 5 == 0 or epoch == 0:
+            if (epoch + 1) in self.eval_checkpoints:
                 self.run_validation()
 
             # Save network
             if self._need_save(epoch):
                 self._save(epoch)
 
+    def _iter_with_convert(self, data_loader: DataLoader, device: torch.device) -> torch.Tensor:
+        next_x, next_y = None, None
+        mem_format = torch.channels_last if self.model.sync_batchnorm else torch.contiguous_format
+        for (xs, y) in data_loader:
+            out_x = next_x
+            out_y = next_y
+            if isinstance(xs, list):
+                next_x = [
+                    x.to(device, memory_format=mem_format, dtype=torch.float16, non_blocking=True)
+                    for x in xs
+                ]
+            elif isinstance(xs, torch.Tensor):
+                next_x = xs.to(device,
+                               memory_format=mem_format,
+                               dtype=torch.float16,
+                               non_blocking=True)
+            else:
+                raise NotImplementedError
+            next_y = y.to(device, non_blocking=True)
+            if out_x is not None:
+                yield out_x, out_y
+        yield next_x, next_y
+
     def train_an_epoch(self):
-        for data_batch in self.train_loader:
+        for data_batch in self._iter_with_convert(self.train_loader, self.device):
             metrics = self.train_step(data_batch)
             self.model.step(progress=self.scheduler.progress)
             self.scheduler.step()
@@ -166,11 +194,7 @@ class GeneralTrainer(ABC):
                 self.logger.add_scalar(f"train/{k}", v)
 
     def run_validation(self):
-        self.evaluator.generate_embeddings()
-        batch_size = 4096 // self.world_size
-        init_lr = 1.6
-        accuracy = self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
-        self.logger.add_scalar("test/lineval_acc", accuracy, force=True)
+        raise NotImplementedError
 
     def train_step(self, batch: torch.Tensor):
         raise NotImplementedError

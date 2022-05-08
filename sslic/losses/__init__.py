@@ -9,6 +9,7 @@ from .mocov2 import *
 from .vicreg import *
 from .nnclr import *
 from .experimental import *
+from .lin_eval import *
 
 
 def get_loss(method_name: str) -> nn.Module:

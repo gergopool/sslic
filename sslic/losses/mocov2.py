@@ -50,6 +50,7 @@ class Mocov2Loss(Loss):
 
         z_t = F.normalize(z_t, dim=1).detach()
         z_s = F.normalize(z_s, dim=1)
+        labels = torch.zeros(len(z_t), dtype=torch.long).to(z_s.device, non_blocking=True)
 
         queue = self.queue.clone().detach()
 
@@ -57,7 +58,6 @@ class Mocov2Loss(Loss):
         neg_samples = z_s @ queue.T
 
         samples = torch.cat((pos_samples, neg_samples), dim=1) / self.tau
-        labels = torch.zeros(len(samples), dtype=torch.long, device=z_s.device)
 
         loss = self.criterion(samples, labels)
 

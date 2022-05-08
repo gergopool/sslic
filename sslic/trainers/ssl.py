@@ -1,5 +1,5 @@
 import torch
-
+from ssl_eval import Evaluator
 from typing import Tuple, Dict
 
 from .general import GeneralTrainer
@@ -11,17 +11,22 @@ class SSLTrainer(GeneralTrainer):
     Trainer for self-supervised image classification.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SSLTrainer, self).__init__(*args, **kwargs)
-
-        # Checkpoints in which we save
-        self.save_checkpoints = [1, 10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 800, 1000]
+    def __init__(self, *args, evaluator: Evaluator = None, **kwargs):
+        super(*args, **kwargs)
+        self.evaluator = evaluator
 
     def _ckp_name(self, epoch):
         """_ckp_name 
         Checkpoint name used for self-supervised pretrained models.
         """
         return f'ssl_checkpoint_{epoch+1:04d}.pth.tar'
+
+    def run_validation(self):
+        self.evaluator.generate_embeddings()
+        batch_size = 4096 // self.world_size
+        init_lr = 1.6
+        accuracy = self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
+        self.logger.add_scalar("test/lineval_acc", accuracy, force=True)
 
     def train_step(self, batch: Tuple[Tuple[torch.Tensor],
                                       torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -41,31 +46,37 @@ class SSLTrainer(GeneralTrainer):
         Dict[str, torch.Tensor]
             A dictionary of metrics. E.g. loss, top1 accuracy, top5 accuracy
         """
-        (x, y) = batch
+        (x, _) = batch
         self.model.train()
-        device = self.device
 
         # Remove all possible gradients
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=True)
 
         # Use fp16 to save memory
         with torch.cuda.amp.autocast(enabled=True):
 
             # Predict
-            y = y.to(device)  # TODO: This one is not used
-            x = [t.to(device) for t in x]
             representations = self.model(x)
 
             # For loss calculation use fp32
             with torch.cuda.amp.autocast(enabled=False):
 
                 # Convert back to fp32
-                representations = [x.float() for x in representations]
-                for i, rep in enumerate(representations):
-                    self.logger.log_describe(f"stats/representation_{i}_len", rep.norm(dim=-1))
+                representations = [
+                    x.to(torch.float32, memory_format=torch.contiguous_format, non_blocking=True)
+                    for x in representations
+                ]
+
                 # Calculate loss
-                loss = self.model.ssl_loss(*representations)
+                loss = self.model.criterion(*representations)
                 log_dict = {}
+
+                # Log
+                if self.logger.need_log():
+                    for i, rep in enumerate(representations):
+                        self.logger.log_describe(f"stats/representation_{i}_len",
+                                                 rep.norm(dim=-1).detach())
+
                 if type(loss) is tuple:
                     loss, log_dict = loss
 
@@ -73,7 +84,5 @@ class SSLTrainer(GeneralTrainer):
         self.scaler.scale(loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
-        # loss.backward()
-        # self.optimizer.step()
 
         return {**log_dict, "loss": loss.item()}

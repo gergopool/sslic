@@ -2,7 +2,7 @@ from .datasets import *
 from torch.utils.data import Dataset
 
 
-def get_dataset(root: str, method_name: str, dataset_name: str, split: str) -> Dataset:
+def get_dataset(root: str, method_name: str, dataset_name: str, split: str, **kwargs) -> Dataset:
     """get_dataset
 
     Parameters
@@ -31,4 +31,4 @@ def get_dataset(root: str, method_name: str, dataset_name: str, split: str) -> D
     dataset_fn = dataset_name + "_dataset"
     if dataset_fn not in globals():
         raise NameError(f"Dataset {dataset_name} is not known.")
-    return globals()[dataset_fn](root, method_name, split)
+    return globals()[dataset_fn](root, method_name, split, **kwargs)
