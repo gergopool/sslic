@@ -11,6 +11,7 @@ from sslic.scheduler import get_scheduler
 from sslic.trainers import SSLTrainer
 from sslic.models import get_ssl_network, available_archs
 from sslic.data import get_dataset, available_datasets
+from sslic.data.transforms import get_transform
 import sslic.utils as utils
 from sslic.optimizers import get_optimizer
 from sslic.losses import get_loss
@@ -41,7 +42,8 @@ def get_data_loader(rank, world_size, per_gpu_batch_size, args):
     # Create datasets
     method = args.transform if args.transform else args.method
     trans_type = 'multi_crop' if args.multicrop else 'ssl'
-    train_dataset = get_dataset(args.data_root, method, args.dataset, trans_type)
+    trans = get_transform(method, args.dataset, trans_type)
+    train_dataset = get_dataset(args.data_root, args.dataset, trans, is_train=True)
 
     # Create distributed samplers if multiple processes defined
     if world_size > 1:

@@ -69,7 +69,6 @@ class GeneralTrainer(ABC):
             1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 400, 500, 600, 800, 1000
         ]
         self.eval_checkpoints = self.save_checkpoints
-        self.half_precision = True
 
     @property
     def device(self):
@@ -161,17 +160,19 @@ class GeneralTrainer(ABC):
     def _iter_with_convert(self, data_loader: DataLoader, device: torch.device) -> torch.Tensor:
         next_x, next_y = None, None
         mem_format = torch.channels_last if self.model.sync_batchnorm else torch.contiguous_format
-        dtype = torch.float16 if self.half_precision else torch.float32
         for (xs, y) in data_loader:
             out_x = next_x
             out_y = next_y
             if isinstance(xs, list):
                 next_x = [
-                    x.to(device, memory_format=mem_format, dtype=dtype, non_blocking=True)
+                    x.to(device, memory_format=mem_format, dtype=torch.float16, non_blocking=True)
                     for x in xs
                 ]
             elif isinstance(xs, torch.Tensor):
-                next_x = xs.to(device, memory_format=mem_format, dtype=dtype, non_blocking=True)
+                next_x = xs.to(device,
+                               memory_format=mem_format,
+                               dtype=torch.float16,
+                               non_blocking=True)
             else:
                 raise NotImplementedError
             next_y = y.to(device, non_blocking=True)

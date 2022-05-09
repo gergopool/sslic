@@ -30,8 +30,10 @@ class LinearEvalModel(BaseModel):
         self.classifier.bias.data.zero_()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.encoder(x)
-        x = self.classifier(x)
+        with torch.no_grad():
+            with torch.cuda.amp.autocast(enabled=True):
+                x = self.encoder(x)
+        x = self.classifier(x.float())
         return x
 
     @classmethod

@@ -17,7 +17,6 @@ class LinearEvalTrainer(GeneralTrainer):
         # Checkpoints in which we save
         self.save_checkpoints = [10, 50, 100]
         self.eval_checkpoints = [1, 10, 20, 30, 40, 50, 100]
-        self.half_precision = False
 
     def _ckp_name(self, epoch):
         """_ckp_name 
@@ -62,8 +61,11 @@ class LinearEvalTrainer(GeneralTrainer):
         loss = self.model.criterion(y_hat, y)
 
         # Backprop
-        loss.backward()
-        self.optimizer.step()
+        # loss.backward()
+        # self.optimizer.step()
+        self.scaler.scale(loss).backward()
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
 
         # Accuracy
         acc = self._accuracy(y_hat, y)
@@ -84,7 +86,7 @@ class LinearEvalTrainer(GeneralTrainer):
         acc = (hits / total) * 100
         print(f"Accuracy: {acc:3.2f}%")
 
-    def val_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def val_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[int, int]:
         """val_step
 
         A single val step, with a forward pass and metrics calculation.
@@ -96,8 +98,8 @@ class LinearEvalTrainer(GeneralTrainer):
 
         Returns
         -------
-        Dict[str, torch.Tensor]
-            A dictionary of metrics. E.g. loss, top1 accuracy, top5 accuracy
+        Tuple[int, int]
+            Number of hits and number of datapoints, respectively.
         """
         (x, y) = batch
 
@@ -105,8 +107,7 @@ class LinearEvalTrainer(GeneralTrainer):
         self.model.eval()
 
         # Predict
-        with torch.no_grad():
-            y_hat = self.model(x)
+        y_hat = self.model(x)
 
         # Calculate loss and metrics
         y_hat = AllGather.apply(y_hat)

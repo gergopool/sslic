@@ -11,6 +11,7 @@ from sslic.models import get_lin_eval_network
 from sslic.scheduler import get_scheduler
 from sslic.optimizers import get_optimizer
 from sslic.data import get_dataset
+from sslic.data.transforms import get_transform
 import sslic.utils as utils
 
 OPT = "linear_eval"  # sgd
@@ -30,8 +31,12 @@ parser.add_argument('--n-workers', type=int, default=16)
 def get_data_loaders(rank, world_size, per_gpu_batch_size, checkpoint, args):
     '''Define data loaders to a specific process.'''
     # Create datasets
-    train_dataset = get_dataset(args.data_root, TRANS, args.dataset, 'train')
-    val_dataset = get_dataset(args.data_root, TRANS, args.dataset, 'test')
+
+    pretrain_dataset = checkpoint['dataset']
+    train_trans = get_transform(TRANS, pretrain_dataset, split='train', norm=args.dataset)
+    val_trans = get_transform(TRANS, pretrain_dataset, split='test', norm=args.dataset)
+    train_dataset = get_dataset(args.data_root, args.dataset, train_trans, is_train=True)
+    val_dataset = get_dataset(args.data_root, args.dataset, val_trans, is_train=False)
 
     # Create distributed samplers if multiple processes defined
     if world_size > 1:
