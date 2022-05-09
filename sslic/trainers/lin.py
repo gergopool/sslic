@@ -1,7 +1,6 @@
 import torch
 from abc import ABC
 from typing import Tuple, Dict
-from ssl_eval import Evaluator
 
 from .general import GeneralTrainer
 from ..utils import AllGather, AllReduce
