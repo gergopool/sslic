@@ -13,13 +13,13 @@ class GeneralTransform(ABC):
         assert split in ['ssl', 'multi_crop', 'train', 'test'], f"Unknown split: {split}"
 
         if dataset_name == 'imagenet':
-            return self.large(split)
+            return self.large(split, norm='imagenet')
         elif dataset_name == 'tiny_imagenet':
-            return self.medium(split)
+            return self.medium(split, norm='tiny_imagenet')
         elif dataset_name == 'cifar10':
-            return self.small(split)
+            return self.small(split, norm='cifar10')
         elif dataset_name == 'cifar100':
-            return self.small(split)
+            return self.small(split, norm='cifar100')
         else:
             raise NameError(f"Unknown dataset: {dataset_name}")
 

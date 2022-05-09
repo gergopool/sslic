@@ -67,10 +67,7 @@ class LinearEvalTrainer(GeneralTrainer):
         self.optimizer.step()
 
         # Accuracy
-        y_hat = AllGather.apply(y_hat)
-        y = AllGather.apply(y)
-        hits = (y_hat.argmax(dim=1) == y).sum()
-        acc = hits / len(y)
+        acc = self._accuracy(y_hat, y)
         return {'loss': loss.item(), 'acc': acc}
 
     def run_validation(self):
