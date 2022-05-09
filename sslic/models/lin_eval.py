@@ -30,8 +30,7 @@ class LinearEvalModel(BaseModel):
         self.classifier.bias.data.zero_()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        with torch.no_grad():
-            x = self.encoder(x)
+        x = self.encoder(x)
         x = self.classifier(x)
         return x
 

@@ -9,27 +9,27 @@ def _is_train(split):
     return split in ['ssl', 'multi_crop', 'train']
 
 
-def imagenet_dataset(root: str, method_name: str, split: str, norm='imagenet'):
+def imagenet_dataset(root: str, method_name: str, split: str):
     imagenet_dir = "train" if _is_train(split) else "val"
     imagenet_dir = os.path.join(root, imagenet_dir)
-    trans = get_transform(method_name, "imagenet", split, norm=norm)
+    trans = get_transform(method_name, "imagenet", split)
     return datasets.ImageFolder(imagenet_dir, trans)
 
 
-def tiny_imagenet_dataset(root: str, method_name: str, split: str, norm='tiny_imagenet'):
+def tiny_imagenet_dataset(root: str, method_name: str, split: str):
     imagenet_dir = "train" if _is_train(split) else "val"
     imagenet_dir = os.path.join(root, imagenet_dir)
-    trans = get_transform(method_name, "tiny_imagenet", split, norm=norm)
+    trans = get_transform(method_name, "tiny_imagenet", split)
     return datasets.ImageFolder(imagenet_dir, trans)
 
 
-def cifar10_dataset(root: str, method_name: str, split: str, norm='cifar10'):
-    trans = get_transform(method_name, "cifar10", split, norm=norm)
+def cifar10_dataset(root: str, method_name: str, split: str):
+    trans = get_transform(method_name, "cifar10", split)
     return datasets.CIFAR10(root, _is_train(split), trans)
 
 
-def cifar100_dataset(root: str, method_name: str, split: str, norm='cifar100'):
-    trans = get_transform(method_name, "cifar100", split, norm=norm)
+def cifar100_dataset(root: str, method_name: str, split: str):
+    trans = get_transform(method_name, "cifar100", split)
     return datasets.CIFAR100(root, _is_train(split), trans)
 
 

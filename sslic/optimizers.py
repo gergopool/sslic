@@ -59,9 +59,13 @@ def _base_lr(mode: str, batch_size: int):
     return lrs[mode]
 
 
-def _linear_eval(model: nn.Module, lr: float, weight_decay: float = 1e-6):
+def _linear_eval(model: nn.Module, lr: float, weight_decay: float = 0.):
     optim_params = model.classifier.parameters()
-    return torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay)
+    return torch.optim.SGD(optim_params,
+                           lr=lr,
+                           momentum=0.9,
+                           weight_decay=weight_decay,
+                           nesterov=True)
 
 
 def _nnclr(*args, weight_decay=1e-6, **kwargs):

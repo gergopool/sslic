@@ -29,13 +29,9 @@ parser.add_argument('--n-workers', type=int, default=16)
 
 def get_data_loaders(rank, world_size, per_gpu_batch_size, checkpoint, args):
     '''Define data loaders to a specific process.'''
-
-    # This is important to create the right pre-process normalization for transfer learning
-    dataset_name = checkpoint['dataset']
-
     # Create datasets
-    train_dataset = get_dataset(args.data_root, TRANS, args.dataset, 'train', norm=dataset_name)
-    val_dataset = get_dataset(args.data_root, TRANS, args.dataset, 'test', norm=dataset_name)
+    train_dataset = get_dataset(args.data_root, TRANS, args.dataset, 'train')
+    val_dataset = get_dataset(args.data_root, TRANS, args.dataset, 'test')
 
     # Create distributed samplers if multiple processes defined
     if world_size > 1:
@@ -131,6 +127,8 @@ def main(rank, world_size, port, args):
 
     # Training parameters
     save_dir = os.path.split(args.pretrained)[0]
+    save_dir = os.path.join(save_dir, args.dataset + "_eval")
+    os.makedirs(save_dir, exist_ok=True)
     save_params = {"method": "linear_eval", "dataset": args.dataset, "save_dir": save_dir}
 
     trainer = LinearEvalTrainer(model,
@@ -138,6 +136,10 @@ def main(rank, world_size, port, args):
                                 save_params=save_params)
 
     cudnn.benchmark = True
+
+    if rank == 0:
+        print(model)
+        print(scheduler)
 
     # Train
     trainer.train(args.epochs)
