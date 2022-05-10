@@ -54,18 +54,14 @@ def _base_lr(mode: str, batch_size: int):
         "twist": scale * 0.5,
         "vicreg": scale * 0.2,
         "nnclr": scale * 0.3,
-        "linear_eval": scale * 0.3
+        "linear_eval": scale * 0.1
     }
     return lrs[mode]
 
 
 def _linear_eval(model: nn.Module, lr: float, weight_decay: float = 0.):
     optim_params = model.classifier.parameters()
-    return torch.optim.SGD(optim_params,
-                           lr=lr,
-                           momentum=0.9,
-                           weight_decay=weight_decay,
-                           nesterov=True)
+    return LARS(torch.optim.SGD(optim_params, lr=lr, momentum=0.9, weight_decay=weight_decay))
 
 
 def _nnclr(*args, weight_decay=1e-6, **kwargs):

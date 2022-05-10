@@ -21,9 +21,9 @@ TRANS = 'mocov2'
 parser = argparse.ArgumentParser(description='Simple settings.')
 parser.add_argument('pretrained', type=str)
 parser.add_argument('data_root', type=str)
-parser.add_argument('--dataset', type=str, default='cifar10')
+parser.add_argument('--dataset', type=str, default='imagenet')
 parser.add_argument('--devices', type=str, nargs='+', default=[])
-parser.add_argument('--batch-size', type=int, default=256)
+parser.add_argument('--batch-size', type=int, default=4096)
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--n-workers', type=int, default=16)
 
@@ -79,7 +79,9 @@ def get_model(args, world_size, checkpoint):
     for k, v in old_state_dict.items():
         for prefix in ['module.encoder.', 'encoder.']:
             if k.startswith(prefix):
-                new_state_dict[k[len(prefix):]] = v
+                new_key = k[len(prefix):]
+                assert new_key not in new_state_dict
+                new_state_dict[new_key] = v
     del old_state_dict
 
     # Define and load model
@@ -158,6 +160,9 @@ if __name__ == '__main__':
         os.environ['CUDA_VISIBLE_DEVICES'] = str_devices
 
     num_gpus = torch.cuda.device_count()
+
+    if args.batch_size / num_gpus > 2048:
+        raise ValueError(f"Batch size of {args.batch_size} is too large for {num_gpus} GPUs.")
 
     # Choose a random port so multiple runs won't conflict with
     # a large chance.

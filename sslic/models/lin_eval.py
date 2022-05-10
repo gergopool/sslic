@@ -31,8 +31,7 @@ class LinearEvalModel(BaseModel):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            with torch.cuda.amp.autocast(enabled=True):
-                x = self.encoder(x)
+            x = self.encoder(x)
         x = self.classifier(x.float())
         return x
 

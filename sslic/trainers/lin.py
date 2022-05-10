@@ -17,6 +17,7 @@ class LinearEvalTrainer(GeneralTrainer):
         # Checkpoints in which we save
         self.save_checkpoints = [10, 50, 100]
         self.eval_checkpoints = [1, 10, 20, 30, 40, 50, 100]
+        self.half_precision = True
 
     def _ckp_name(self, epoch):
         """_ckp_name 
@@ -57,8 +58,9 @@ class LinearEvalTrainer(GeneralTrainer):
         self.optimizer.zero_grad(set_to_none=True)
 
         # Predict
-        y_hat = self.model(x)
-        loss = self.model.criterion(y_hat, y)
+        with torch.cuda.amp.autocast(enabled=self.half_precision):
+            y_hat = self.model(x)
+            loss = self.model.criterion(y_hat, y)
 
         # Backprop
         # loss.backward()
@@ -84,7 +86,8 @@ class LinearEvalTrainer(GeneralTrainer):
             hits += batch_hits
             total += batch_n
         acc = (hits / total) * 100
-        print(f"Accuracy: {acc:3.2f}%")
+        if self.rank == 0:
+            print(f"Accuracy: {acc:3.2f}%")
 
     def val_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[int, int]:
         """val_step
@@ -107,7 +110,8 @@ class LinearEvalTrainer(GeneralTrainer):
         self.model.eval()
 
         # Predict
-        y_hat = self.model(x)
+        with torch.cuda.amp.autocast(enabled=self.half_precision):
+            y_hat = self.model(x)
 
         # Calculate loss and metrics
         y_hat = AllGather.apply(y_hat)
