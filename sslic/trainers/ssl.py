@@ -12,7 +12,7 @@ class SSLTrainer(GeneralTrainer):
     """
 
     def __init__(self, *args, evaluator: Evaluator = None, **kwargs):
-        super(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.evaluator = evaluator
 
     def _ckp_name(self, epoch):

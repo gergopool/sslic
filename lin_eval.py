@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
     num_gpus = torch.cuda.device_count()
 
-    if args.batch_size / num_gpus > 2048:
+    if args.batch_size / num_gpus > 2048 and args.dataset == "imagenet":
         raise ValueError(f"Batch size of {args.batch_size} is too large for {num_gpus} GPUs.")
 
     # Choose a random port so multiple runs won't conflict with
