@@ -12,27 +12,30 @@ class ReSSLTransform(MocoTransform):
 
     def large(self, split: str = 'train', norm: str = 'imagenet') -> Callable:
         if split == 'ssl':
-            return MultiCropTransform([self._aug_t(224, norm), self._aug_s(224, norm, 0.5)])
+            return MultiCropTransform(
+                [self._aug_t(224, norm=norm), self._aug_s(224, norm=norm, blur_chance=0.5)])
         else:
             return super().large(split, norm)
 
     def medium(self, split: str = 'train', norm: str = 'imagenet') -> Callable:
         if split == 'ssl':
-            return MultiCropTransform([self._aug_t(64, norm), self._aug_s(64, norm, 0.5)])
+            return MultiCropTransform(
+                [self._aug_t(64, norm=norm), self._aug_s(64, norm=norm, blur_chance=0.5)])
         else:
-            return super().large(split, norm)
+            return super().medium(split, norm)
 
     def small(self, split: str = 'train', norm: str = 'cifar10') -> Callable:
         if split == 'ssl':
-            return MultiCropTransform([self._aug_t(32, norm), self._aug_s(32, norm, 0.)])
+            return MultiCropTransform(
+                [self._aug_t(32, norm=norm), self._aug_s(32, norm=norm, blur_chance=0.)])
         else:
-            return super().large(split, norm)
+            return super().small(split, norm)
 
     def multi_crop(self, sizes: List[int], scales: List[Tuple[float, float]],
                    norm: str) -> Callable:
-        trans = [self._aug_t(sizes[0], scales[0], norm)]
+        trans = [self._aug_t(sizes[0], scale=scales[0], norm=norm)]
         for size, scale in zip(sizes[1:], scales[1:]):
-            trans.append(self._aug_s(size, scale, norm))
+            trans.append(self._aug_s(size, scale=scale, norm=norm))
         return MultiCropTransform(trans)
 
     # ========================================================================
@@ -41,8 +44,8 @@ class ReSSLTransform(MocoTransform):
 
     def _aug_t(self,
                size: int,
-               scale: Tuple[float, float] = (0.2, 1.),
-               norm: str = 'imagenet') -> Callable:
+               norm: str = 'imagenet',
+               scale: Tuple[float, float] = (0.2, 1.)) -> Callable:
         '''Teacher augmentations / weak augmentations'''
         return transforms.Compose([
             transforms.RandomResizedCrop(size, scale=scale),
@@ -53,8 +56,8 @@ class ReSSLTransform(MocoTransform):
 
     def _aug_s(self,
                size: int,
-               scale: Tuple[float, float] = (0.2, 1.),
                norm: str = 'imagenet',
+               scale: Tuple[float, float] = (0.2, 1.),
                blur_chance: float = 0.5) -> Callable:
         '''Student augmentations / hard augmentations'''
         kernel_size = int((size // 20) * 2) + 1
