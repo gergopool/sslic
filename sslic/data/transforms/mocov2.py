@@ -85,7 +85,7 @@ class MocoTransform(GeneralTransform):
         return getattr(self, split)(64, norm)
 
     def small(self, split: str = 'train', norm: str = 'cifar10') -> Callable:
-        super().medium(split, norm)
+        super().small(split, norm)
         return getattr(self, split)(32, norm)
 
 
