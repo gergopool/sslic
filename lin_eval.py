@@ -14,17 +14,18 @@ from sslic.data import get_dataset
 from sslic.data.transforms import get_transform
 import sslic.utils as utils
 
-OPT = "linear_eval"  # sgd
-SCHEDULER = 'linear_eval'
+OPT = {'swav': 'swav_eval', 'simsiam': 'simsiam_eval'}
+SCHEDULER = 'cosine'
 TRANS = 'mocov2'
+EPOCHS = 100
+BATCH_SIZE = {'swav': 256, 'simsiam': 4096}
 
 parser = argparse.ArgumentParser(description='Simple settings.')
 parser.add_argument('pretrained', type=str)
 parser.add_argument('data_root', type=str)
 parser.add_argument('--dataset', type=str, default='imagenet')
+parser.add_argument('--method', type=str, default='swav', choices=['swav', 'simsiam'])
 parser.add_argument('--devices', type=str, nargs='+', default=[])
-parser.add_argument('--batch-size', type=int, default=4096)
-parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--n-workers', type=int, default=16)
 
 
@@ -113,7 +114,7 @@ def main(rank, world_size, port, args):
         torch.distributed.barrier()
 
     # Divide batch size
-    per_gpu_batch_size = args.batch_size // world_size
+    per_gpu_batch_size = BATCH_SIZE[args.method] // world_size
 
     # Get checkpoint
     checkpoint = torch.load(args.pretrained, map_location="cpu")
@@ -125,10 +126,12 @@ def main(rank, world_size, port, args):
     model = get_model(args, world_size, checkpoint=checkpoint)
 
     # Scheduler
-    optimizer = get_optimizer(OPT, model, batch_size=args.batch_size)
+    opt_name = args.method + '_eval'
+    batch_size = BATCH_SIZE[args.method]
+    optimizer = get_optimizer(opt_name, model, batch_size=batch_size)
     scheduler = get_scheduler(SCHEDULER,
                               optimizer=optimizer,
-                              epochs=args.epochs,
+                              epochs=EPOCHS,
                               ipe=len(train_loader),
                               verbose=rank == 0)
 
@@ -149,7 +152,7 @@ def main(rank, world_size, port, args):
         print(scheduler)
 
     # Train
-    trainer.train(args.epochs)
+    trainer.train(EPOCHS)
 
 
 if __name__ == '__main__':
@@ -161,8 +164,9 @@ if __name__ == '__main__':
 
     num_gpus = torch.cuda.device_count()
 
-    if args.batch_size / num_gpus > 2048 and args.dataset == "imagenet":
-        raise ValueError(f"Batch size of {args.batch_size} is too large for {num_gpus} GPUs.")
+    batch_size = BATCH_SIZE[args.method]
+    if batch_size / num_gpus > 2048 and args.dataset == "imagenet":
+        raise ValueError(f"Batch size of {batch_size} is too large for {num_gpus} GPUs.")
 
     # Choose a random port so multiple runs won't conflict with
     # a large chance.

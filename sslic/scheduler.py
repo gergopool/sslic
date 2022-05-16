@@ -13,10 +13,12 @@ def get_scheduler(name, *args, **kwargs):
         return warmup_cosine(*args, warmup_epochs=10, **kwargs)
     elif name == "ressl":
         return warmup_cosine(*args, warmup_epochs=5, **kwargs)
-    elif name in ['simsiam', 'mocov2', 'twist', 'linear_eval']:
+    elif name in ['simsiam', 'mocov2', 'twist', 'cosine']:
         return cosine(*args, **kwargs)
     elif name in ['cosine', 'warmup_cosine']:
         return globals()[name](*args, **kwargs)
+    elif name == 'multi_step':
+        return multi_step(*args, **kwargs)
     else:
         raise NameError(f"Unknown scheduler: {name}")
 
@@ -84,6 +86,29 @@ class Scheduler:
                f"(lr={self.current_lrs[0]:2.4f})"
 
 
+class MultiStep(Scheduler):
+
+    def __init__(self, *args, steps=[0.6, 0.8], scale=0.1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.steps = sorted(steps)
+        self.scale = scale
+        unfixed_lrs = self.current_unfixed_lrs
+        assert len(unfixed_lrs) > 0, "No learning rate to schedule"
+        if len(unfixed_lrs) > 1:
+            assert unfixed_lrs[1:] == unfixed_lrs[:-1], "Unfixed learning rates must be the same"
+        self.init_lr = unfixed_lrs[0]
+
+    def on_step(self):
+        if len(self.steps) and self.progress >= self.steps[0] and len(self.current_unfixed_lrs) > 0:
+            self.steps.pop(0)
+            next_lr = self.scale * self.current_unfixed_lrs[0]
+            self.set_lr(next_lr)
+
+    def __repr__(self):
+        return f"Scheduler: {type(self).__name__} with {type(self.optimizer).__name__}" + \
+               f"(init_lr={self.init_lr:2.4f}, step={self.steps}, scale={self.scale})"
+
+
 class CosineAnnealing(Scheduler):
 
     def __init__(self, *args, **kwargs):
@@ -144,3 +169,7 @@ def cosine(*args, **kwargs):
 
 def warmup_cosine(*args, **kwargs):
     return WarmUpCosineAnnealing(*args, **kwargs)
+
+
+def multi_step(*args, **kwargs):
+    return MultiStep(*args, **kwargs)
