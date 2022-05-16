@@ -8,18 +8,22 @@ class GeneralTransform(ABC):
 
     datasets = ['imagenet', 'tiny_imagenet', 'cifar10', 'cifar100']
 
-    def make_by_dataset(self, dataset_name: str, split: str = 'train') -> Callable:
+    def make_by_dataset(self, dataset_name: str, split: str = 'train', **kwargs) -> Callable:
 
         assert split in ['ssl', 'multi_crop', 'train', 'test'], f"Unknown split: {split}"
 
         if dataset_name == 'imagenet':
-            return self.large(split, norm='imagenet')
+            norm = kwargs.get('norm', 'imagenet')
+            return self.large(split, norm=norm)
         elif dataset_name == 'tiny_imagenet':
-            return self.medium(split, norm='imagenet')
+            norm = kwargs.get('norm', 'tiny_imagenet')
+            return self.medium(split, norm=norm)
         elif dataset_name == 'cifar10':
-            return self.small(split, norm='cifar10')
+            norm = kwargs.get('norm', 'cifar10')
+            return self.small(split, norm=norm)
         elif dataset_name == 'cifar100':
-            return self.small(split, norm='cifar100')
+            norm = kwargs.get('norm', 'cifar100')
+            return self.small(split, norm=norm)
         else:
             raise NameError(f"Unknown dataset: {dataset_name}")
 

@@ -1,5 +1,5 @@
 import torch
-
+from ssl_eval import Evaluator
 from typing import Tuple, Dict
 
 from .general import GeneralTrainer
@@ -11,11 +11,22 @@ class SSLTrainer(GeneralTrainer):
     Trainer for self-supervised image classification.
     """
 
+    def __init__(self, *args, evaluator: Evaluator = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.evaluator = evaluator
+
     def _ckp_name(self, epoch):
         """_ckp_name 
         Checkpoint name used for self-supervised pretrained models.
         """
         return f'ssl_checkpoint_{epoch+1:04d}.pth.tar'
+
+    def run_validation(self):
+        self.evaluator.generate_embeddings()
+        batch_size = 4096 // self.world_size
+        init_lr = 1.6
+        accuracy = self.evaluator.linear_eval(batch_size=batch_size, lr=init_lr)
+        self.logger.add_scalar("test/lineval_acc", accuracy, force=True)
 
     def train_step(self, batch: Tuple[Tuple[torch.Tensor],
                                       torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -57,7 +68,7 @@ class SSLTrainer(GeneralTrainer):
                 ]
 
                 # Calculate loss
-                loss = self.model.ssl_loss(*representations)
+                loss = self.model.criterion(*representations)
                 log_dict = {}
 
                 # Log
