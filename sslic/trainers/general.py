@@ -110,11 +110,20 @@ class GeneralTrainer(ABC):
 
     def load(self, path):
         save_dict = torch.load(path, map_location=self.device)
-        self.model.load_state_dict(save_dict['state_dict'])
-        self.optimizer.load_state_dict(save_dict['optimizer'])
+        self.model.load_state_dict(self._replace_ssl_loss_w_criterion(save_dict['state_dict']))
+        self.optimizer.load_state_dict(self._replace_ssl_loss_w_criterion(save_dict['optimizer']))
         self.scaler.load_state_dict(save_dict['amp'])
         self.start_epoch = save_dict['epoch']
         torch.distributed.barrier()
+
+    def _replace_ssl_loss_w_criterion(self, d):
+        new_d = {}
+        for k, v in d.items():
+            if 'ssl_loss' in k:
+                print("Deprecation warning: You have loaded an old model which has " + \
+                      "ssl_loss parameter. It got replaced to criterion.")
+            new_d[k.replace('ssl_loss', 'criterion')] = v
+        return new_d
 
     def train(self, n_epochs: int):
         """train
