@@ -10,19 +10,22 @@ class Loss(nn.Module):
 
     @classmethod
     def imagenet(cls, *args, **kwargs):
-        return cls(*args, *kwargs)
+        return cls(*args, **kwargs)
 
     @classmethod
     def tiny_imagenet(cls, *args, **kwargs):
-        return cls(*args, *kwargs)
+        return cls(*args, **kwargs)
 
     @classmethod
     def cifar10(cls, *args, **kwargs):
-        return cls(*args, *kwargs)
+        return cls(*args, **kwargs)
 
     @classmethod
     def cifar100(cls, *args, **kwargs):
-        return cls(*args, *kwargs)
+        return cls(*args, **kwargs)
+
+    def step(self, progress: float):
+        pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError

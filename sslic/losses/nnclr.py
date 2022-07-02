@@ -26,8 +26,8 @@ class NNCLRLoss(Mocov2Loss):
         return queue[sims.argmax(dim=1)]
 
     def sim_loss(self, nn: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+        labels = torch.arange(len(p)).to(p.device, non_blocking=True)
         sim = p @ nn.T / self.tau
-        labels = torch.arange(len(p), device=p.device)
         return self.criterion(sim, labels)
 
     def forward(self, p1: torch.Tensor, p2: torch.Tensor, z1: torch.Tensor,

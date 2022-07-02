@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
-from typing import Callable
+from functools import partial
 from copy import deepcopy
+from typing import List, Tuple
 
-from ..losses import ressl_loss
+from .split_batch_norm import SplitBatchNorm2d
 from .base_model import BaseModel
 from ..utils import after_init_world_size_n_rank, AllGather
 
@@ -82,8 +83,9 @@ class MomentumModel(BaseModel):
             z = self.teacher_net(x)
         return z
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x_easy, x_hard = x
+    def forward(self, xs: List[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        x_easy = xs[0]
+        x_hard = xs[1:]
 
         # Teacher side
         with torch.no_grad():
@@ -91,6 +93,37 @@ class MomentumModel(BaseModel):
             teacher_z = self._teacher_forward(x_easy)
 
         # Student side
-        student_z = self._student_forward(x_hard)
+        student_z = []
+        for x in x_hard:
+            student_z.append(self._student_forward(x))
+        student_z = torch.cat(student_z, dim=0)
 
         return teacher_z, student_z
+
+    @classmethod
+    def imagenet(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
+        return super().imagenet(*args, **kwargs)
+
+    @classmethod
+    def tiny_imagenet(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
+        return super().tiny_imagenet(*args, **kwargs)
+
+    @classmethod
+    def cifar10(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
+        return super().cifar10(*args, **kwargs)
+
+    @classmethod
+    def cifar100(cls, *args, **kwargs) -> BaseModel:
+        if after_init_world_size_n_rank()[0] == 1:
+            kwargs["norm_layer"] = partial(SplitBatchNorm2d, num_splits=8)
+            kwargs['sync_batchnorm'] = False
+        return super().cifar100(*args, **kwargs)

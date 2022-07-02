@@ -1,32 +1,28 @@
 import torchvision.datasets as datasets
 import os
-from .transforms import get_transform
+from torch import nn
 
 __all__ = ["imagenet_dataset", "tiny_imagenet_dataset", "cifar10_dataset", "cifar100_dataset"]
 
 
-def imagenet_dataset(root: str, method_name: str, split: str):
-    imagenet_dir = "train" if split in ['ssl', 'train'] else "val"
+def imagenet_dataset(root: str, trans: nn.Module, is_train: bool):
+    imagenet_dir = "train" if is_train else "val"
     imagenet_dir = os.path.join(root, imagenet_dir)
-    trans = get_transform(method_name, "imagenet", split)
     return datasets.ImageFolder(imagenet_dir, trans)
 
 
-def tiny_imagenet_dataset(root: str, method_name: str, split: str):
-    imagenet_dir = "train" if split in ['ssl', 'train'] else "val"
+def tiny_imagenet_dataset(root: str, trans: nn.Module, is_train: bool):
+    imagenet_dir = "train" if is_train else "val"
     imagenet_dir = os.path.join(root, imagenet_dir)
-    trans = get_transform(method_name, "tiny_imagenet", split)
     return datasets.ImageFolder(imagenet_dir, trans)
 
 
-def cifar10_dataset(root: str, method_name: str, split: str):
-    trans = get_transform(method_name, "cifar10", split)
-    return datasets.CIFAR10(root, split in ['ssl', 'train'], trans)
+def cifar10_dataset(root: str, trans: nn.Module, is_train: bool):
+    return datasets.CIFAR10(root, is_train, trans)
 
 
-def cifar100_dataset(root: str, method_name: str, split: str):
-    trans = get_transform(method_name, "cifar100", split)
-    return datasets.CIFAR100(root, split in ['ssl', 'train'], trans)
+def cifar100_dataset(root: str, trans: nn.Module, is_train: bool):
+    return datasets.CIFAR100(root, is_train, trans)
 
 
 if __name__ == "__main__":
@@ -36,7 +32,7 @@ if __name__ == "__main__":
 
     # Retrive img
     root = "/data/shared/data/tiny_imagenet"
-    dataset = tiny_imagenet_dataset(root, "byol", "ssl")
+    dataset = tiny_imagenet_dataset(root, "byol", True)
     x, y = dataset[0]
 
     # Convert to human readable image
