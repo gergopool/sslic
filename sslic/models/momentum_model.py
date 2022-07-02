@@ -75,12 +75,9 @@ class MomentumModel(BaseModel):
 
     @torch.no_grad()
     def _teacher_forward(self, x):
-        if self.world_size > 1:
-            shuffled_x, idx_unshuffle = self._batch_shuffle(x)
-            z = self.teacher_net(shuffled_x)
-            z = self._batch_unshuffle(z, idx_unshuffle)
-        else:
-            z = self.teacher_net(x)
+        shuffled_x, idx_unshuffle = self._batch_shuffle(x)
+        z = self.teacher_net(shuffled_x)
+        z = self._batch_unshuffle(z, idx_unshuffle)
         return z
 
     def forward(self, xs: List[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
